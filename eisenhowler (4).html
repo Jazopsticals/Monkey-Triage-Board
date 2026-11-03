@@ -1,0 +1,2621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Eisenhowler: sort your monkeys</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%92%3C/text%3E%3C/svg%3E">
+<style>
+/* =========================================================
+   1. TOKENS
+   ========================================================= */
+:root{
+  --cream:#FBF4E3;       /* page */
+  --paper:#FFFCF4;       /* surfaces */
+  --ink:#2B2118;         /* cocoa text */
+  --ink-2:#5E4D3D;       /* secondary text */
+  --line:#E8D9BA;
+  --banana:#F2C94C;
+  --banana-deep:#C99A12;
+
+  --red:#A23B2A;   --red-bg:#F8E2DA;   --red-line:#E7B4A6;
+  --amber:#7F500C; --amber-bg:#FBEBC9; --amber-line:#EBCB86;
+  --blue:#2B5A84;  --blue-bg:#E0EBF4;  --blue-line:#AFC8DE;
+  --green:#2C6541; --green-bg:#E0EEDD; --green-line:#AECDA9;
+
+  --focus:#1D4ED8;
+  --r-xl:26px; --r-lg:18px; --r-md:12px; --r-sm:8px;
+  --shadow-card:0 1px 0 rgba(60,40,10,.08), 0 8px 20px -12px rgba(60,40,10,.45);
+  --shadow-lift:0 18px 40px -12px rgba(60,40,10,.55);
+  --font-display:ui-rounded,"SF Pro Rounded","Arial Rounded MT Bold","Nunito","Varela Round","Trebuchet MS",system-ui,sans-serif;
+  --font-body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0;background:var(--cream);color:var(--ink);
+  font:16px/1.5 var(--font-body);
+  padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) calc(96px + env(safe-area-inset-bottom,0px)) env(safe-area-inset-left,0px);
+  background-image:radial-gradient(circle at 1px 1px, rgba(120,90,30,.07) 1px, transparent 0);
+  background-size:22px 22px;
+}
+h1,h2,h3{font-family:var(--font-display);line-height:1.15;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:6px}
+.skip{position:absolute;left:12px;top:-60px;background:var(--ink);color:#fff;padding:10px 14px;border-radius:10px;z-index:100}
+.skip:focus{top:12px}
+.wrap{max-width:1360px;margin:0 auto;padding:0 20px}
+
+/* =========================================================
+   2. BUTTONS AND FIELDS
+   ========================================================= */
+.btn{
+  display:inline-flex;align-items:center;gap:.45em;justify-content:center;
+  border:1.5px solid var(--ink);background:var(--paper);color:var(--ink);
+  border-radius:999px;padding:.5em 1em;font-weight:600;cursor:pointer;
+  min-height:40px;line-height:1.1;text-decoration:none;
+  transition:transform .12s ease, background .12s ease, box-shadow .12s ease;
+}
+.btn:hover{background:#fff;box-shadow:0 3px 0 var(--ink);transform:translateY(-1px)}
+.btn:active{transform:translateY(1px);box-shadow:none}
+.btn.primary{background:var(--ink);color:var(--cream)}
+.btn.primary:hover{background:#3d2f22}
+.btn.banana{background:var(--banana);border-color:#7a5a06}
+.btn.banana:hover{background:#f6d468}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:rgba(43,33,24,.06);box-shadow:none}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.btn[hidden]{display:none}
+.btn.small{min-height:32px;padding:.3em .75em;font-size:.875rem}
+.btn[aria-pressed="true"]{background:var(--banana);border-color:#7a5a06}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+
+label{font-weight:600;font-size:.9rem;display:block;margin-bottom:4px}
+.hint{font-weight:400;color:var(--ink-2);font-size:.82rem}
+input[type=text],input[type=datetime-local],input[type=date],select,textarea{
+  width:100%;border:1.5px solid #CDB991;background:#fff;border-radius:var(--r-md);
+  padding:.6em .75em;min-height:42px;
+}
+textarea{resize:vertical;min-height:84px}
+input:focus,select:focus,textarea:focus{outline:3px solid var(--focus);outline-offset:1px;border-color:var(--focus)}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+legend{font-weight:600;font-size:.9rem;padding:0;margin-bottom:6px}
+
+/* chip radios / checks */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip-opt{position:relative}
+.chip-opt input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.chip-opt span{
+  display:inline-flex;align-items:center;gap:6px;border:1.5px solid #CDB991;background:#fff;
+  border-radius:999px;padding:.38em .8em;font-size:.88rem;font-weight:500;min-height:36px;
+}
+.chip-opt input:checked + span{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+.chip-opt input:checked + span::before{content:"✓";font-weight:700}
+.chip-opt input:focus-visible + span{outline:3px solid var(--focus);outline-offset:2px}
+
+/* =========================================================
+   3. HEADER + DASHBOARD
+   ========================================================= */
+.top{padding:22px 0 10px}
+.top .wrap{display:grid;grid-template-columns:auto 1fr;gap:18px 28px;align-items:center}
+.brand{display:flex;align-items:center;gap:14px}
+.brand svg{width:64px;height:64px;flex:none;filter:drop-shadow(0 4px 0 rgba(43,33,24,.15))}
+.brand h1{font-size:clamp(1.9rem,3.6vw,2.7rem);letter-spacing:-.02em;font-weight:800}
+.brand h1 .howl{display:inline-block;transform-origin:50% 90%}
+.brand p{margin:2px 0 0;color:var(--ink-2);font-size:.95rem}
+.dash{display:flex;flex-direction:column;gap:8px;min-width:0}
+.counters{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.counter{
+  background:var(--paper);border:1.5px solid var(--line);border-radius:var(--r-md);
+  padding:8px 10px;display:flex;flex-direction:column;gap:0;min-width:0;
+}
+.counter b{font-family:var(--font-display);font-size:1.6rem;line-height:1.05}
+.counter span{font-size:.78rem;color:var(--ink-2);line-height:1.25}
+.counter.c-red{border-left:6px solid var(--red)}
+.counter.c-amber{border-left:6px solid var(--amber)}
+.counter.c-blue{border-left:6px solid var(--blue)}
+.counter.c-green{border-left:6px solid var(--green)}
+.counter.c-owner,.counter.c-over{border-left:6px dashed var(--ink)}
+.counter.alert{background:#FFF1C9;border-color:var(--banana-deep)}
+.status{
+  margin:0;font-family:var(--font-display);font-weight:700;font-size:1.05rem;
+  display:flex;align-items:center;gap:10px;
+}
+.status .bubble{background:var(--ink);color:var(--cream);padding:6px 14px;border-radius:16px 16px 16px 4px}
+.tools{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-top:4px;border-top:1.5px dashed var(--line);padding-top:12px}
+.tools .spacer{flex:1}
+
+/* =========================================================
+   4. INTAKE FORM + HOLDING PEN
+   ========================================================= */
+.intake-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;margin:14px auto 22px}
+.panel{background:var(--paper);border:1.5px solid var(--line);border-radius:var(--r-xl);padding:20px 22px;box-shadow:var(--shadow-card)}
+.panel > h2{font-size:1.6rem;font-weight:800;margin-bottom:12px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.form-grid .full{grid-column:1/-1}
+.kw-sugg{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.kw-chip{border:1.5px dashed #CDB991;background:#fff;border-radius:999px;padding:2px 10px;font-size:.84rem;cursor:pointer;min-height:30px}
+.kw-chip:hover{border-style:solid}
+.kw-chip[aria-pressed="true"]{background:var(--ink);color:var(--cream);border:1.5px solid var(--ink)}
+.kw-chip .clash{font-size:.74rem;opacity:.8;margin-left:4px}
+.type-desc{display:block;font-size:.84rem;color:var(--ink-2);margin-top:2px}
+.deadline-quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.forecast{
+  margin:14px 0 0;padding:12px 14px;border-radius:var(--r-md);background:#F7EBCF;
+  display:flex;gap:12px;align-items:flex-start;font-size:.92rem;min-height:56px;
+}
+.forecast .ava{width:44px;height:44px;flex:none}
+.forecast strong{font-family:var(--font-display)}
+.summon-row{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.summon-row .btn.primary{font-size:1.08rem;padding:.7em 1.4em;min-height:50px}
+
+details.interro{margin-top:16px;border:1.5px dashed #CDB991;border-radius:var(--r-lg);background:#FFF8E8}
+details.interro > summary{cursor:pointer;padding:12px 16px;font-family:var(--font-display);font-weight:700;font-size:1.05rem;list-style:none;display:flex;align-items:center;gap:10px}
+details.interro > summary::-webkit-details-marker{display:none}
+details.interro > summary::after{content:"＋";margin-left:auto;font-weight:700}
+details.interro[open] > summary::after{content:"－"}
+.iq{padding:4px 16px 16px;display:grid;gap:14px}
+.iq ol{margin:0;padding-left:1.4em;display:grid;gap:14px}
+.iq li::marker{font-weight:700;font-family:var(--font-display)}
+.iq .sub{margin-top:6px}
+
+.pen{display:flex;flex-direction:column}
+.pen .pen-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pen p.lead{margin:2px 0 12px;color:var(--ink-2);font-size:.92rem}
+.pen .cards{flex:1;min-height:180px;border:2px dashed #D9C59A;border-radius:var(--r-lg);padding:10px;background:repeating-linear-gradient(-45deg,#FFF8E6,#FFF8E6 12px,#FCF2DA 12px,#FCF2DA 24px)}
+
+/* =========================================================
+   5. MATRIX
+   ========================================================= */
+.board-wrap{position:relative;padding-left:34px;padding-top:30px}
+.axis{position:absolute;font-family:var(--font-display);font-weight:700;color:var(--ink-2);font-size:.95rem;display:flex}
+.axis.x{top:0;left:34px;right:0}
+.axis.x span{flex:1;text-align:center}
+.axis.y{left:0;top:30px;bottom:0;width:30px;flex-direction:column}
+.axis.y span{flex:1;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center}
+.matrix{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.q{
+  border-radius:var(--r-xl);border:2px solid;padding:16px 16px 14px;min-height:300px;
+  display:flex;flex-direction:column;position:relative;
+  transition:transform .15s ease, box-shadow .15s ease, outline-color .15s;
+  outline:4px solid transparent;outline-offset:3px;
+}
+.q[data-drop=red]{background:var(--red-bg);border-color:var(--red-line)}
+.q[data-drop=amber]{background:var(--amber-bg);border-color:var(--amber-line)}
+.q[data-drop=blue]{background:var(--blue-bg);border-color:var(--blue-line)}
+.q[data-drop=green]{background:var(--green-bg);border-color:var(--green-line)}
+.q-head{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:start}
+.q-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:1.5rem;background:var(--paper);border:2px solid currentColor}
+.q h2{font-size:1.45rem;font-weight:800}
+.q[data-drop=red] .q-head{color:var(--red)} .q[data-drop=amber] .q-head{color:var(--amber)}
+.q[data-drop=blue] .q-head{color:var(--blue)} .q[data-drop=green] .q-head{color:var(--green)}
+.q .sub{font-weight:700;font-size:.92rem;color:var(--ink)}
+.q .count{font-family:var(--font-display);font-weight:800;font-size:1.05rem;background:var(--paper);border:2px solid currentColor;border-radius:999px;padding:2px 12px;white-space:nowrap}
+.q .action-label{grid-column:2/-1;font-size:.88rem;color:var(--ink);margin:0}
+.q .action-label::before{content:"Do: ";font-weight:700}
+.q details.uses{grid-column:1/-1;font-size:.86rem;color:var(--ink)}
+.q details.uses summary{cursor:pointer;font-weight:600;color:var(--ink-2);width:max-content}
+.q details.uses ul{margin:6px 0 0;padding-left:1.2em}
+.q details.uses p{margin:6px 0 0}
+.q .cards{flex:1;margin-top:12px;border-radius:var(--r-lg);min-height:140px;padding:2px}
+.q.drop-hot,.pen .cards.drop-hot{outline-color:var(--ink);transform:scale(1.01);box-shadow:0 0 0 6px rgba(242,201,76,.65)}
+.q .empty,.pen .empty{
+  color:var(--ink-2);font-size:.9rem;text-align:center;padding:22px 10px;border:2px dashed rgba(43,33,24,.18);border-radius:var(--r-lg);list-style:none;
+}
+
+/* =========================================================
+   6. MONKEY CARDS
+   ========================================================= */
+.cards{list-style:none;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;align-content:start}
+.card{
+  background:var(--paper);border:1.5px solid rgba(43,33,24,.18);border-radius:var(--r-lg);
+  padding:12px 12px 10px;box-shadow:var(--shadow-card);position:relative;cursor:grab;
+  display:flex;flex-direction:column;gap:8px;user-select:none;-webkit-user-select:none;
+  -webkit-touch-callout:none;transition:opacity .2s, transform .2s, filter .2s;
+}
+.card:hover{border-color:rgba(43,33,24,.4)}
+.card:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.card.is-dragging{opacity:.35;transform:scale(.97)}
+.card.landed{animation:land .45s cubic-bezier(.3,1.6,.5,1)}
+.card.climbed{animation:climb .9s ease}
+@keyframes land{0%{transform:scale(.85) rotate(-3deg)}100%{transform:none}}
+@keyframes climb{0%{transform:translateY(40px);opacity:.2}60%{transform:translateY(-8px)}100%{transform:none;opacity:1}}
+.card-top{display:grid;grid-template-columns:58px 1fr auto;gap:10px;align-items:center;touch-action:none}
+.ava{width:58px;height:58px;border-radius:16px;overflow:hidden;background:#eee;flex:none}
+.ava svg{width:100%;height:100%;display:block}
+.card h3{font-size:1.06rem;font-weight:800;overflow-wrap:anywhere}
+.type-chip{display:inline-flex;align-items:center;gap:4px;font-size:.76rem;font-weight:600;background:#F3E6C6;border-radius:999px;padding:1px 8px;margin-top:3px;color:var(--ink)}
+.grip{font-size:1.25rem;color:var(--ink-2);padding:6px 4px;cursor:grab;line-height:1}
+.card .sum{margin:0;font-size:.9rem;line-height:1.4}
+.card .wait{margin:0;font-size:.8rem;color:var(--ink-2)}
+.card .wait b{color:var(--ink)}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin:0;font-size:.8rem}
+.meta div{min-width:0}
+.meta dt{color:var(--ink-2);font-size:.72rem}
+.meta dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.risk{display:inline-flex;align-items:center;gap:4px;border-radius:6px;padding:0 6px;font-weight:700}
+.risk.r4{background:#7F2214;color:#fff} .risk.r3{background:#F3C9BC;color:#6E1F12}
+.risk.r2{background:#F7E2A7;color:#5A3A04} .risk.r1{background:#D3E7CF;color:#1F4A2E}
+.flag{font-size:.76rem;font-weight:700;border-radius:6px;padding:1px 7px;display:inline-block}
+.flag.over{background:var(--red);color:#fff}
+.flag.soon{background:#FFE7A3;color:#5A3A04}
+.flag.noown{background:#fff;border:1.5px dashed var(--ink);color:var(--ink)}
+.flag.climb{background:var(--ink);color:var(--banana)}
+.flag.status{background:#E7DECB;color:var(--ink)}
+.flags{display:flex;flex-wrap:wrap;gap:5px}
+.card .next{margin:0;font-size:.82rem;background:rgba(43,33,24,.05);border-radius:var(--r-sm);padding:6px 8px}
+.card .next b{font-family:var(--font-display)}
+.card-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-top:1px dashed rgba(43,33,24,.18);padding-top:8px}
+.card-actions select{width:100%;min-height:34px;padding:.2em .6em;font-size:.84rem;border-radius:999px;flex:1 1 100%}
+.card-actions .btn[data-act=more]{margin-left:auto}
+.card-actions .btn{min-height:32px;padding:.25em .7em;font-size:.82rem}
+.suggest-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.82rem}
+.card.spot{outline:4px solid var(--banana);outline-offset:3px}
+.card .rank{position:absolute;top:-12px;left:-10px;background:var(--banana);border:2px solid var(--ink);border-radius:999px;width:30px;height:30px;display:grid;place-items:center;font-weight:800;font-family:var(--font-display);z-index:2}
+.focus-on .card:not(.spot){opacity:.28;filter:grayscale(.8)}
+.focus-on .q:not(:has(.spot)){filter:saturate(.4)}
+
+.drag-ghost{
+  position:fixed;left:0;top:0;z-index:1000;pointer-events:none;margin:0;
+  box-shadow:var(--shadow-lift);transform-origin:30% 20%;cursor:grabbing;
+}
+
+/* =========================================================
+   7. FOCUS PANEL, VAULT, FOOTER
+   ========================================================= */
+.focus-panel{margin:14px auto 4px;background:var(--ink);color:var(--cream);border-radius:var(--r-xl);padding:18px 22px 20px;box-shadow:var(--shadow-card)}
+.fp-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.fp-head h2{font-size:clamp(1.35rem,2.4vw,1.75rem);font-weight:800;color:var(--banana);flex:1;min-width:220px}
+.focus-panel .btn{border-color:var(--cream);background:transparent;color:var(--cream)}
+.focus-panel .btn:hover{background:rgba(255,255,255,.08);box-shadow:0 3px 0 var(--banana)}
+.focus-panel .btn[aria-pressed="true"]{background:var(--banana);color:var(--ink);border-color:var(--banana)}
+.fp-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.fp-item{
+  width:100%;height:100%;text-align:left;display:grid;grid-template-columns:auto 48px 1fr;gap:10px;align-items:start;
+  background:#3A2D21;color:var(--cream);border:1.5px solid #5A4733;border-radius:var(--r-lg);padding:12px;cursor:pointer;
+  transition:transform .12s ease, border-color .12s ease;
+}
+.fp-item:hover{border-color:var(--banana);transform:translateY(-2px)}
+.fp-item:focus-visible{outline:3px solid var(--banana);outline-offset:3px}
+.fp-rank{width:30px;height:30px;border-radius:999px;background:var(--banana);color:var(--ink);display:grid;place-items:center;font-family:var(--font-display);font-weight:800}
+.fp-item .ava{width:48px;height:48px;border-radius:14px}
+.fp-text{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fp-text b{font-family:var(--font-display);font-size:1.08rem;overflow-wrap:anywhere}
+.fp-sum{font-size:.9rem}
+.fp-item .flags{margin-top:2px}
+.why{color:#E9DCC0;font-size:.84rem}
+.fp-foot{margin:12px 0 0;color:#E9DCC0;font-size:.9rem}
+.fp-empty{margin:0;font-size:1.02rem}
+@media (max-width:900px){ .fp-list{grid-template-columns:1fr} }
+
+.vault{margin:26px auto 10px}
+.vault-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.vault-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.vault-item{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;background:#fff;border:1.5px solid var(--line);border-radius:var(--r-md);padding:8px 10px}
+.vault-item .ava{width:44px;height:44px;border-radius:12px}
+.vault-item p{margin:0;font-size:.85rem;color:var(--ink-2)}
+.vault-item .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+footer.foot{color:var(--ink-2);font-size:.85rem;margin:24px auto 0}
+kbd{background:#fff;border:1px solid #CDB991;border-bottom-width:2px;border-radius:5px;padding:0 5px;font-size:.8rem;font-family:inherit}
+
+/* =========================================================
+   8. DIALOGS, MENUS, TOASTS
+   ========================================================= */
+dialog{
+  border:0;border-radius:var(--r-xl);padding:0;background:var(--paper);color:var(--ink);
+  width:min(720px, calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:hidden;box-shadow:0 30px 80px -20px rgba(30,20,5,.6);
+}
+dialog::backdrop{background:rgba(43,33,24,.45);backdrop-filter:blur(2px)}
+.dlg{display:flex;flex-direction:column;max-height:calc(100dvh - 24px)}
+.dlg-head{display:flex;gap:12px;align-items:center;padding:16px 20px;border-bottom:1.5px solid var(--line)}
+.dlg-head h2{font-size:1.35rem;flex:1}
+.dlg-head .ava{width:48px;height:48px}
+.dlg-body{padding:16px 20px;overflow:auto;display:grid;gap:14px}
+.dlg-foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));border-top:1.5px solid var(--line);background:#FFF8E8;border-radius:0 0 var(--r-xl) var(--r-xl)}
+.dlg-foot .left{margin-right:auto;display:flex;gap:8px;flex-wrap:wrap}
+.section-h{font-family:var(--font-display);font-weight:800;font-size:1.05rem;margin:6px 0 0;padding-top:10px;border-top:1.5px dashed var(--line)}
+.notes-list,.hist-list{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:.88rem}
+.notes-list li,.hist-list li{background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);padding:6px 10px;display:flex;gap:8px;align-items:flex-start}
+.notes-list li span,.hist-list li span{flex:1}
+.notes-list time,.hist-list time{color:var(--ink-2);font-size:.78rem;display:block}
+.resp-box{background:#FFF4D6;border:1.5px solid #E8CF8A;border-radius:var(--r-md);padding:12px}
+.resp-box textarea{background:#FFFDF5;min-height:96px}
+.resp-tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.bucket-tag{display:inline-flex;gap:6px;align-items:center;font-weight:700;border-radius:999px;padding:2px 10px;font-size:.85rem}
+.bucket-tag.red{background:var(--red-bg);color:var(--red)} .bucket-tag.amber{background:var(--amber-bg);color:var(--amber)}
+.bucket-tag.blue{background:var(--blue-bg);color:var(--blue)} .bucket-tag.green{background:var(--green-bg);color:var(--green)}
+.bucket-tag.pen{background:#EFE3C8;color:var(--ink)}
+
+.menu{position:fixed;z-index:900;background:var(--paper);border:1.5px solid var(--ink);border-radius:var(--r-md);box-shadow:var(--shadow-lift);padding:6px;min-width:190px;display:grid}
+.menu[hidden]{display:none}
+.menu button{background:none;border:0;text-align:left;padding:9px 12px;border-radius:8px;cursor:pointer;font-weight:500}
+.menu button:hover,.menu button:focus{background:#F3E6C6;outline:none}
+.menu button.danger{color:var(--red)}
+
+.toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:1200;display:grid;gap:8px;width:min(460px,calc(100vw - 24px));pointer-events:none}
+.toast{background:var(--ink);color:var(--cream);padding:10px 16px;border-radius:14px;box-shadow:var(--shadow-lift);font-weight:500;animation:toastIn .25s ease;pointer-events:auto}
+@keyframes toastIn{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+
+/* =========================================================
+   9. MONKEY BUSINESS (walking critters, projectiles, confetti)
+   ========================================================= */
+.critters{position:fixed;left:0;right:0;bottom:env(safe-area-inset-bottom,0px);height:86px;z-index:800;pointer-events:none}
+.critters::before{content:"";position:absolute;left:0;right:0;bottom:0;height:16px;background:linear-gradient(transparent,rgba(120,90,30,.12))}
+.critter{position:absolute;bottom:4px;left:0;width:62px;height:76px;pointer-events:auto;cursor:pointer;will-change:transform;background:none;border:0;padding:0}
+.critter .flip{width:100%;height:100%;transform:scaleX(var(--dir,1))}
+.critter .body{width:100%;height:100%;transform-origin:50% 100%}
+.critter.walking .body{animation:waddle .5s ease-in-out infinite alternate}
+.critter.throwing .body{animation:windup .45s ease}
+.critter{z-index:2}
+.critter.climbing .body{animation:shimmy .22s ease-in-out infinite alternate}
+.critter.perched .body{transform:rotate(-4deg)}
+@keyframes shimmy{from{transform:translateX(-3px) rotate(-6deg)}to{transform:translateX(3px) rotate(6deg)}}
+.palm{position:fixed;pointer-events:none;z-index:790;transform-origin:50% 100%}
+.critter.hopping .body{transform:rotate(calc(var(--dir,1) * 18deg)) scale(1.05)}
+.palm svg{width:100%;height:100%;display:block;overflow:visible}
+.palm-fruit{transition:transform .5s cubic-bezier(.3,1.6,.5,1), opacity .3s;transform-box:fill-box;transform-origin:center}
+.palm-fruit.picked{transform:scale(0);opacity:0}
+.splat .crack{position:absolute;inset:0;width:100%;height:100%}
+.critter svg{width:100%;height:100%;overflow:visible}
+@keyframes waddle{from{transform:rotate(-5deg) translateY(0)}to{transform:rotate(5deg) translateY(-3px)}}
+@keyframes windup{0%{transform:rotate(0)}40%{transform:rotate(-18deg) scale(1.05)}100%{transform:rotate(8deg)}}
+.speech{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:#fff;border:2px solid var(--ink);border-radius:12px;padding:4px 10px;font-size:.8rem;font-weight:700;white-space:nowrap;font-family:var(--font-display);pointer-events:none}
+.speech::after{content:"";position:absolute;left:50%;bottom:-8px;border:7px solid transparent;border-top-color:var(--ink);border-bottom:0;transform:translateX(-50%)}
+.projectile{position:fixed;left:0;top:0;z-index:1100;font-size:34px;pointer-events:none;line-height:1}
+.splat{position:fixed;z-index:1090;pointer-events:none;width:130px;height:130px;margin:-65px 0 0 -65px;display:grid;place-items:center}
+.splat .goo{position:absolute;inset:0;border-radius:46% 54% 40% 60% / 55% 45% 55% 45%;opacity:.55}
+.splat .fruit{font-size:64px;position:relative}
+.confetti{position:fixed;z-index:1150;pointer-events:none;font-size:22px;left:0;top:0}
+
+/* Pallbearers: monkeys carry a card from the holding pen to its bucket */
+.cortege{position:absolute;left:0;top:0;z-index:950;pointer-events:none}
+.cortege .load{position:absolute;left:0;top:0;transform-origin:0 0}
+.cortege .card{margin:0;list-style:none;width:100%;box-shadow:var(--shadow-lift);cursor:default;transform-origin:50% 100%}
+.cortege.marching .card{animation:sway .46s ease-in-out infinite alternate}
+.card.carried{visibility:hidden}
+.bearer{position:absolute}
+.bearer .flip{width:100%;height:100%;transform:scaleX(var(--dir,1))}
+.bearer .body{width:100%;height:100%;transform-origin:50% 100%}
+.bearer svg{width:100%;height:100%;overflow:visible;display:block}
+.cortege.shuffling .bearer .body{animation:waddle .28s ease-in-out infinite alternate}
+.cortege.marching .bearer .body{animation:march .46s ease-in-out infinite alternate}
+.cortege .speech{bottom:auto;top:-44px;left:10px;transform:none;z-index:2}
+.cortege .speech::after{left:22px}
+@keyframes march{from{transform:translateY(0) rotate(-4deg)}to{transform:translateY(-4px) rotate(4deg)}}
+@keyframes sway{from{transform:translateY(0) rotate(-.7deg)}to{transform:translateY(-4px) rotate(.7deg)}}
+
+/* =========================================================
+   10. RESPONSIVE
+   ========================================================= */
+@media (max-width:1100px){
+  .counters{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:900px){
+  .top .wrap{grid-template-columns:1fr}
+  .intake-row{grid-template-columns:1fr}
+}
+@media (max-width:720px){
+  .wrap{padding:0 12px}
+  .matrix{grid-template-columns:1fr}
+  .board-wrap{padding:0}
+  .axis{display:none}
+  .form-grid{grid-template-columns:1fr}
+  .panel{padding:16px;border-radius:var(--r-lg)}
+  .q{min-height:200px}
+  .cards{grid-template-columns:1fr}
+  .counters{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .brand svg{width:52px;height:52px}
+  .tools .btn{font-size:.85rem}
+  .critter{width:48px;height:60px}
+  .critters{height:70px}
+}
+
+/* =========================================================
+   11. REDUCED MOTION
+   ========================================================= */
+@media (prefers-reduced-motion: reduce){
+  .palm{display:none}
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
+
+/* =========================================================
+   12. PRINT
+   ========================================================= */
+@media print{
+  body{background:#fff;padding:0;font-size:11pt}
+  .no-print,.palm,.cortege,.projectile,.splat,.critters,.toasts,.menu,.intake-row,.tools,.vault,footer.foot,.card-actions,.grip,.q details.uses,#focusBtn,.suggest-row,.skip{display:none!important}
+  .focus-panel{background:#fff;color:#000;border:2px solid #000;box-shadow:none}
+  .fp-head h2,.why,.fp-foot,.fp-item{color:#000}
+  .fp-item{background:#fff;border:1px solid #888}
+  .print-only{display:block!important}
+  .counters{grid-template-columns:repeat(6,1fr)}
+  .counter{border:1px solid #999!important}
+  .matrix{grid-template-columns:1fr 1fr;gap:8px}
+  .q{break-inside:avoid;min-height:0;border:2px solid #555!important;background:#fff!important}
+  .cards{grid-template-columns:1fr}
+  .card{box-shadow:none;break-inside:avoid;border:1px solid #888;opacity:1!important;filter:none!important}
+  .axis{display:flex}
+}
+.print-only{display:none}
+</style>
+</head>
+<body>
+<a class="skip" href="#board">Skip to the monkey matrix</a>
+
+<!-- ============ HEADER + DASHBOARD ============ -->
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="48" fill="#F2C94C" stroke="#2B2118" stroke-width="3"/>
+        <circle cx="22" cy="48" r="11" fill="#6B4425" stroke="#2B2118" stroke-width="2.5"/><circle cx="22" cy="48" r="6" fill="#E9C49A"/>
+        <circle cx="78" cy="48" r="11" fill="#6B4425" stroke="#2B2118" stroke-width="2.5"/><circle cx="78" cy="48" r="6" fill="#E9C49A"/>
+        <circle cx="50" cy="50" r="27" fill="#6B4425" stroke="#2B2118" stroke-width="2.5"/>
+        <path d="M33 50c0-9 7-13 17-6 10-7 17-3 17 6 0 13-8 20-17 20s-17-7-17-20z" fill="#E9C49A"/>
+        <circle cx="42" cy="47" r="3.4" fill="#2B2118"/><circle cx="58" cy="47" r="3.4" fill="#2B2118"/>
+        <ellipse cx="50" cy="64" rx="7" ry="5.5" fill="#2B2118"/>
+        <rect x="34" y="17" width="32" height="10" rx="3" fill="#2B2118"/><rect x="40" y="9" width="20" height="11" rx="2" fill="#2B2118"/>
+        <text x="50" y="25" text-anchor="middle" font-size="7" font-weight="700" fill="#F2C94C" font-family="system-ui">2×2</text>
+      </svg>
+      <div>
+        <h1>Eisen<span class="howl">howler</span></h1>
+        <p>Sort the monkeys. Keep the bananas.</p>
+      </div>
+    </div>
+
+    <section class="dash" aria-label="Board summary">
+      <ul class="counters" id="counters"></ul>
+      <p class="status" id="status" aria-live="polite"></p>
+    </section>
+
+    <nav class="tools no-print" aria-label="Board tools">
+      <button class="btn small" id="critterBtn" type="button" aria-pressed="true">🐒 Monkey business</button>
+      <span class="spacer"></span>
+      <button class="btn small ghost" id="exportJson" type="button">Export JSON</button>
+      <button class="btn small ghost" id="importBtn" type="button">Import JSON</button>
+      <input type="file" id="importFile" accept="application/json,.json" class="sr-only" tabindex="-1" aria-hidden="true">
+      <button class="btn small ghost" id="exportCsv" type="button">Export CSV</button>
+      <button class="btn small ghost" id="printBtn" type="button">Print board</button>
+      <button class="btn small" id="settingsBtn" type="button">⚙️ Settings</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ============ TOP PRIORITY: WHAT ACTUALLY NEEDS ME TODAY ============ -->
+  <div class="wrap">
+    <section class="focus-panel" id="focusPanel" aria-labelledby="focusH">
+      <div class="fp-head">
+        <h2 id="focusH">🎯 What actually needs you today</h2>
+        <button class="btn small" id="focusBtn" type="button" aria-pressed="false">Dim everything else</button>
+      </div>
+      <div id="focusList" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <!-- ============ INTAKE + HOLDING PEN ============ -->
+  <div class="wrap intake-row">
+    <section class="panel" aria-labelledby="intakeH">
+      <form id="intake" novalidate>
+        <h2 id="intakeH">What happened?</h2>
+        <div class="form-grid">
+          <div class="full">
+            <label for="fDesc">Describe the problem, request or task</label>
+            <textarea id="fDesc" rows="4" required placeholder="e.g. Another team’s director wants us to support their project with unfunded scope, starting next week."></textarea>
+          </div>
+          <div>
+            <label for="fBrought">Who brought this to you? <span class="hint">(optional)</span></label>
+            <input type="text" id="fBrought" autocomplete="off" placeholder="Your manager, a stakeholder, another team…">
+          </div>
+          <div>
+            <label for="fOwner">Who should actually own this? <span class="hint">(optional)</span></label>
+            <input type="text" id="fOwner" autocomplete="off" placeholder="Me, Finance, the project lead…">
+          </div>
+          <div class="full">
+            <label for="fDeadline">Deadline <span class="hint">(optional)</span></label>
+            <input type="datetime-local" id="fDeadline">
+            <div class="deadline-quick" role="group" aria-label="Quick deadline">
+              <button type="button" class="btn small ghost" data-quick="today">Today 5pm</button>
+              <button type="button" class="btn small ghost" data-quick="tomorrow">Tomorrow 9am</button>
+              <button type="button" class="btn small ghost" data-quick="friday">Friday</button>
+              <button type="button" class="btn small ghost" data-quick="monday">Next Monday</button>
+              <button type="button" class="btn small ghost" data-quick="clear">No deadline</button>
+            </div>
+          </div>
+          <fieldset class="full">
+            <legend>Impact</legend>
+            <div class="chips" id="fImpact">
+              <label class="chip-opt"><input type="radio" name="impact" value="1"><span>Minor inconvenience</span></label>
+              <label class="chip-opt"><input type="radio" name="impact" value="2" checked><span>Affects one person</span></label>
+              <label class="chip-opt"><input type="radio" name="impact" value="3"><span>Affects a team or customer</span></label>
+              <label class="chip-opt"><input type="radio" name="impact" value="4"><span>Financial, legal, safety or reputational risk</span></label>
+            </div>
+          </fieldset>
+        </div>
+
+        <details class="interro" id="intakeInterro">
+          <summary>🔦 Interrogate the Monkey <span class="hint">(optional, sharpens the verdict)</span></summary>
+          <div class="iq" id="intakeIQ"></div>
+        </details>
+
+        <div class="forecast" id="forecast" aria-live="polite"></div>
+
+        <div class="summon-row">
+          <button type="submit" class="btn primary">🐒 Summon Monkey</button>
+          <button type="reset" class="btn ghost">Clear</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel pen" aria-labelledby="penH">
+      <div class="pen-head"><h2 id="penH">Holding pen</h2><span class="hint" id="penCount"></span></div>
+      <p class="lead">New monkeys wait here. Drag one into a bucket, press <kbd>1</kbd>–<kbd>4</kbd> on a focused card, or use its Move menu.</p>
+      <ul class="cards" id="list-pen" data-drop="pen" aria-label="Holding pen, unsorted monkeys"></ul>
+    </section>
+  </div>
+
+  <!-- ============ MATRIX ============ -->
+  <div class="wrap">
+    <h2 class="print-only">Eisenhowler board, printed <span id="printDate"></span></h2>
+    <div class="board-wrap" id="board">
+      <div class="axis x" aria-hidden="true"><span>Time-sensitive</span><span>Can wait</span></div>
+      <div class="axis y" aria-hidden="true"><span>Needs me</span><span>Doesn't need me</span></div>
+      <div class="matrix" id="matrix"></div>
+    </div>
+  </div>
+
+  <!-- ============ VAULT ============ -->
+  <section class="wrap vault" aria-labelledby="vaultH">
+    <div class="panel">
+      <h2 id="vaultH">The banana vault</h2>
+      <p class="hint" style="margin:-6px 0 12px">Completed and archived monkeys live here. Restore any of them to the board.</p>
+      <div class="vault-tabs" role="tablist" aria-label="Vault sections">
+        <button class="btn small" role="tab" id="tab-done" aria-selected="true" aria-controls="vaultList" data-vtab="done">Completed <span id="vDoneN"></span></button>
+        <button class="btn small ghost" role="tab" id="tab-archived" aria-selected="false" aria-controls="vaultList" data-vtab="archived">Archived <span id="vArchN"></span></button>
+      </div>
+      <ul class="vault-list" id="vaultList" role="tabpanel" aria-labelledby="tab-done"></ul>
+    </div>
+  </section>
+
+  <footer class="wrap foot no-print">
+    <p><b>Keyboard:</b> Tab to a monkey card, then <kbd>1</kbd> Escalate, <kbd>2</kbd> Schedule, <kbd>3</kbd> Delegate, <kbd>4</kbd> Not my monkey, <kbd>0</kbd> Holding pen, <kbd>Enter</kbd> edit, <kbd>D</kbd> done, <kbd>Delete</kbd> delete. Everything is saved in this browser only.</p>
+  </footer>
+</main>
+
+<!-- ============ OVERLAYS ============ -->
+<div class="critters" id="critters" aria-hidden="true"></div>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+<div class="sr-only" id="announcer" aria-live="assertive"></div>
+<div class="menu" id="moreMenu" role="menu" hidden></div>
+
+<!-- Edit monkey -->
+<dialog id="editDlg" aria-labelledby="editH">
+  <form class="dlg" method="dialog" id="editForm">
+    <div class="dlg-head"><div class="ava" id="editAva"></div><h2 id="editH">Edit monkey</h2><button type="button" class="btn small ghost" data-close aria-label="Close">✕</button></div>
+    <div class="dlg-body">
+      <div class="form-grid">
+        <div><label for="eName">Monkey name <span class="hint">(max 5 words)</span></label><input type="text" id="eName" required></div>
+        <div><label for="eType">Monkey type</label><select id="eType"></select></div>
+        <div class="full"><label for="eSummary">One-sentence summary</label><input type="text" id="eSummary"></div>
+        <div class="full"><label for="eDesc">Full description</label><textarea id="eDesc" rows="3"></textarea></div>
+        <div><label for="eBrought">Brought by</label><input type="text" id="eBrought"></div>
+        <div><label for="eOwner">Owner</label><input type="text" id="eOwner" placeholder="Leave blank if nobody owns it yet"></div>
+        <div><label for="eDeadline">Deadline</label><input type="datetime-local" id="eDeadline"></div>
+        <div><label for="eImpact">Impact</label>
+          <select id="eImpact">
+            <option value="1">Minor inconvenience</option><option value="2">Affects one person</option>
+            <option value="3">Affects a team or customer</option><option value="4">Financial, legal, safety or reputational risk</option>
+          </select></div>
+      </div>
+      <p class="forecast" id="editForecast" aria-live="polite"></p>
+      <details class="interro" id="editInterro">
+        <summary>🔦 Interrogate the Monkey</summary>
+        <div class="iq" id="editIQ"></div>
+      </details>
+      <h3 class="section-h" id="notesH">Notes</h3>
+      <ul class="notes-list" id="eNotes"></ul>
+      <div style="display:flex;gap:8px"><label class="sr-only" for="eNoteNew">New note</label><input type="text" id="eNoteNew" placeholder="Add a note…"><button type="button" class="btn small" id="eNoteAdd">Add note</button></div>
+      <h3 class="section-h" id="histH">Movement history</h3>
+      <ul class="hist-list" id="eHist"></ul>
+    </div>
+    <div class="dlg-foot">
+      <div class="left"><button type="button" class="btn small ghost" id="eSuggest">Re-run suggestion</button></div>
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn primary" value="save" id="eSave">Save monkey</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Next step after drop -->
+<dialog id="stepDlg" aria-labelledby="stepH">
+  <form class="dlg" method="dialog" id="stepForm">
+    <div class="dlg-head"><div class="ava" id="stepAva"></div><h2 id="stepH">Next step</h2></div>
+    <div class="dlg-body" id="stepBody"></div>
+    <div class="dlg-foot">
+      <button class="btn ghost" value="skip">Skip for now</button>
+      <button class="btn primary" value="save">Save next step</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Confirm -->
+<dialog id="confirmDlg" aria-labelledby="confirmH" style="width:min(440px,calc(100vw - 24px))">
+  <form class="dlg" method="dialog">
+    <div class="dlg-head"><h2 id="confirmH">Are you sure?</h2></div>
+    <div class="dlg-body"><p id="confirmMsg" style="margin:0"></p></div>
+    <div class="dlg-foot"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes" id="confirmYes">Confirm</button></div>
+  </form>
+</dialog>
+
+<!-- Settings -->
+<dialog id="settingsDlg" aria-labelledby="setH">
+  <form class="dlg" method="dialog" id="settingsForm">
+    <div class="dlg-head"><h2 id="setH">⚙️ Settings</h2><button type="button" class="btn small ghost" data-close aria-label="Close">✕</button></div>
+    <div class="dlg-body">
+      <div class="form-grid">
+        <div><label for="sName">Your name</label><input type="text" id="sName" placeholder="Used to recognise monkeys you own"><span class="hint">Owners called “me” always count as you.</span></div>
+        <div><label for="sThrow">Fruit throwing</label>
+          <select id="sThrow"><option value="off">Off, they just stroll</option><option value="polite">Polite (now and then)</option><option value="chaotic">Chaotic (zoo after dark)</option></select></div>
+        <label class="full" style="display:flex;gap:10px;align-items:center;font-weight:500"><input type="checkbox" id="sAuto" style="width:20px;height:20px"> Move monkeys to Escalate Now automatically when their deadline arrives</label>
+        <label class="full" style="display:flex;gap:10px;align-items:center;font-weight:500"><input type="checkbox" id="sAutoGreen" style="width:20px;height:20px"> Include Not My Monkey in automatic escalation</label>
+      </div>
+      <h3 class="section-h">Your own monkey types</h3>
+      <ul class="notes-list" id="sTypes"></ul>
+      <div class="form-grid">
+        <div><label for="ctName">Type name</label><input type="text" id="ctName" placeholder="e.g. Audit Monkey"></div>
+        <div><label for="ctEmoji">Emoji</label><input type="text" id="ctEmoji" placeholder="🧾" maxlength="4"></div>
+        <div><label for="ctBucket">Default bucket</label><select id="ctBucket"></select></div>
+        <div class="full"><label for="ctDesc">What does this monkey look like? <span class="hint">(describe it the way people say it, and the trigger words below fill with suggestions)</span></label>
+          <textarea id="ctDesc" rows="3" placeholder="e.g. Requests from internal audit or external auditors for evidence, samples or sign-off on controls before a deadline."></textarea></div>
+        <div class="full"><label for="ctKw">Trigger words <span class="hint">(comma separated)</span></label><input type="text" id="ctKw" placeholder="audit, auditor, sample">
+          <div id="ctSuggWrap" hidden><p class="hint" style="margin:8px 0 0">Suggested from your description. Tap to add or remove. A note like “also Revenue” means another type already listens for that word.</p>
+          <div class="kw-sugg" id="ctSugg" role="group" aria-label="Suggested trigger words"></div></div></div>
+        <div class="full" style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn small" id="ctAdd">Add monkey type</button><button type="button" class="btn small ghost" id="ctCancel" hidden>Cancel editing</button></div>
+      </div>
+      <h3 class="section-h">Data</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn small" id="sDemo">Reload demo monkeys</button>
+        <button type="button" class="btn small danger" id="sClear">Clear all data</button>
+      </div>
+    </div>
+    <div class="dlg-foot"><button class="btn primary" value="save">Save settings</button></div>
+  </form>
+</dialog>
+<script>
+"use strict";
+/* =========================================================
+   1. CONSTANTS
+   ========================================================= */
+const STORE_KEY = 'eisenhowler.v1';
+const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const BUCKETS = {
+  red:   {key:'red',   n:1, icon:'🚨', title:'Escalate Now',        sub:'High impact + time-sensitive',
+          action:'Act, contain, escalate and document',
+          uses:['Safety issues','Legal or compliance risk','Serious customer harm','Material financial exposure','Security or privacy incidents','Problems where waiting creates real damage'],
+          examples:'Compliance Monkey, Fire Monkey, Serious Customer Monkey'},
+  amber: {key:'amber', n:2, icon:'📅', title:'Decide and Schedule', sub:'Important + not immediately urgent',
+          action:'Assign an owner, deadline and review date',
+          uses:['Strategic decisions','Process improvements','Contract reviews','Staffing or compensation reviews','Work that needs protected time','Problems that matter but will not worsen today'],
+          examples:'Monday Monkey, Revenue Monkey, Maintenance Monkey'},
+  blue:  {key:'blue',  n:3, icon:'📤', title:'Delegate or Route',   sub:'Needs action + does not require me',
+          action:'Route clearly and define when it returns',
+          uses:['Another person owns the execution','A specialist should review it','A team member can resolve it','You only need an update or approval','It should go to HR, legal, finance, compliance or another owner'],
+          examples:'Delegation Monkey, HR Monkey, Legal Monkey, Supplier Monkey'},
+  green: {key:'green', n:4, icon:'🙅', title:'Not My Monkey',       sub:'Low impact, low urgency or wrong owner',
+          action:'Decline, archive, observe or ignore',
+          uses:['Gossip','Someone else’s relationship conflict','Requests with no clear consequence','Manufactured urgency','Problems already owned elsewhere','Work that does not need to happen'],
+          examples:'Noise Monkey, Exiled Monkey, Banana Monkey, Not My Monkey'}
+};
+const BUCKET_ORDER = ['red','amber','blue','green'];
+const PLACE_LABEL = {pen:'Holding pen', red:'Escalate Now', amber:'Decide and Schedule', blue:'Delegate or Route', green:'Not My Monkey', done:'Completed', archived:'Archived', none:'Nowhere (new)'};
+
+/* Built-in monkey types. kw = trigger words for the local classifier. */
+const BASE_TYPES = {
+  compliance:{name:'Compliance Monkey', emoji:'⚖️', bucket:'red', risk:4, hat:'hardhat',
+    desc:'Legal, privacy, safety, regulatory or contractual risk',
+    wait:'Exposure grows. Regulators, affected people and trust are all on the clock.',
+    kw:['legal','lawyer','law','privacy','gdpr','hipaa','pdpa','confidential','patient information','patient data','personal data','medical record','data breach','breach','leak','leaked','wrong recipient','wrong person','regulator','regulatory','compliance','audit','safety','injury','injured','hazard','unsafe','contract','lawsuit','sued','sue ','fraud','police','harassment','discrimination','whistleblow','licence','license','tribunal','subpoena']},
+  fire:{name:'Fire Monkey', emoji:'🔥', bucket:'red', risk:4, hat:'helmet',
+    desc:'Urgent and materially damaging if delayed',
+    wait:'Damage compounds every hour it burns.',
+    kw:['outage','is down','went down','crash','crashed','broken','not working','fire','flood','leaking','emergency','stolen','theft','hacked','hack','security incident','ransomware','phishing','critical','burst','evacuat','power cut','system down','offline']},
+  revenue:{name:'Revenue Monkey', emoji:'💰', bucket:'amber', risk:3, hat:'visor',
+    desc:'Affects money, sales, payment or cash flow',
+    wait:'Money is delayed or lost and cash flow gets tighter.',
+    kw:['invoice','payment','paid','unpaid','cash','cash flow','sales','revenue','pricing','price','refund','budget','billing','quote','deal','discount','profit','cost','expense','bank','payroll','overcharged','charged twice','debt','tender']},
+  customer:{name:'Customer Monkey', emoji:'🤝', bucket:'amber', risk:3, hat:'headset',
+    desc:'Directly affects a customer or patient',
+    wait:'The customer experience degrades and trust erodes.',
+    kw:['customer','client','patient','complaint','complain','guest','order','delivery','review','returns','refund request','appointment','booking','member']},
+  people:{name:'People Monkey', emoji:'🫶', bucket:'amber', risk:2, hat:'beanie',
+    desc:'Staff welfare, workload or relationship issue',
+    wait:'Stress and friction build quietly until someone burns out or leaves.',
+    kw:['staff','employee','team member','colleague','burnout','burned out','burnt out','workload','overworked','sick','stress','conflict','argument','resign','quit','hiring','wellbeing','well-being','bullying','upset','crying','morale','rota','roster','annual leave']},
+  delegation:{name:'Delegation Monkey', emoji:'📤', bucket:'blue', risk:2, hat:'cap',
+    desc:'Important, but someone else should execute it',
+    wait:'It stalls if nobody owns it, but it does not need your hands.',
+    kw:['supplier','vendor','measurement','measurements','specs','specification','dimensions','update the','send the','spreadsheet','paperwork','install','fix the','order more','stock','reorder','format','print','artwork','display','signage','it ticket','password reset']},
+  monday:{name:'Monday Monkey', emoji:'🗓️', bucket:'amber', risk:2, hat:'beret',
+    desc:'Important, but can be scheduled',
+    wait:'Little changes by tomorrow. It matters, but it can wait for protected time.',
+    kw:['review','strategy','strategic','plan ','planning','process','improve','improvement','quarterly','annual','policy','roadmap','bands','compensation','salary','proposal','next month','next quarter','someday','eventually','idea','six-month','six month','maintenance','renewal']},
+  noise:{name:'Noise Monkey', emoji:'📢', bucket:'green', risk:1, hat:'headphones',
+    desc:'Sounds urgent but has little actual consequence',
+    wait:'Probably nothing. The urgency is louder than the consequence.',
+    kw:['someone says','someone said','apparently','rumour','rumor','gossip','heard that','i heard','looked through','fyi','just so you know','might be','maybe','possibly','vibe','weird','reply all','cc','someone thinks','supposedly']},
+  notmine:{name:'Not My Monkey', emoji:'🙅', bucket:'green', risk:1, hat:'shades',
+    desc:'Belongs to another person, team or organisation',
+    wait:'Nothing for you. The real owner carries the consequence.',
+    kw:['not my','their team','another department','other team','another team','unfunded','unpaid scope','out of scope','scope creep','not in our plan','no budget','no headcount','their project','their roadmap','their backlog','belongs to','their problem','someone else','their manager','neighbour','neighbor','landlord','head office','other company','their client']},
+  exiled:{name:'Exiled Monkey', emoji:'🚪', bucket:'green', risk:2, hat:'hood',
+    desc:'An old problem or person trying to regain access',
+    wait:'Re-opening a closed door creates risk without a clear benefit.',
+    kw:['former','ex-','ex partner','old partner','business partner','regain access','used to work','wants back','come back','rehire','re-hire','old supplier','banned','blocked','exiled','previous owner','old problem','get back in']},
+  zombie:{name:'Zombie Monkey', emoji:'🧟', bucket:'amber', risk:2, hat:'bandage',
+    desc:'An old task or issue that keeps returning because it was never properly closed',
+    wait:'It will come back again unless someone properly closes it.',
+    kw:['again','still','keeps','keep coming','recurring','every week','every month','third time','reopened','re-opened','never closed','never fixed','same issue','back again','resurfaced','as discussed before']},
+  banana:{name:'Banana Monkey', emoji:'🍌', bucket:'green', risk:1, hat:'party',
+    desc:'Funny, low-stakes or morale-related issue',
+    wait:'Morale dips slightly. Nobody is harmed.',
+    kw:['cake','birthday','lunch','coffee','party','snack','snacks','plant','plants','joke','drinks','karaoke','mug','fridge','playlist','dress code','emoji','meme','biscuits','pizza','secret santa']}
+};
+
+const IMPACT_LABEL = {1:'Minor inconvenience', 2:'Affects one person', 3:'Affects a team or customer', 4:'Financial, legal, safety or reputational risk'};
+const RISK_LABEL = {4:'▲ Critical', 3:'◆ High', 2:'● Moderate', 1:'○ Low'};
+
+/* Avatar palettes (original cartoon monkeys built from traits) */
+const FURS = [['#6B4425','#4E2F17'],['#8A5A2B','#62401E'],['#B7792F','#8A5820'],['#7C7F86','#585B61'],['#3F3A36','#26221F'],['#C0622B','#8E451C'],['#D9C3A0','#B39C78'],['#5B6C8A','#3F4D66'],['#8E6B9E','#684C75'],['#A0522D','#73391E']];
+const FACES = ['#E9C49A','#F1D3B0','#DDB07F','#F3DFC8','#E2BC93','#C99B70'];
+const BGS = ['#F2C94C','#9FD3C7','#F4A7A3','#B9D6F2','#C8E6A0','#F6C28B','#D7C4F0','#FFE29A','#A8E0E8','#F0B8D8'];
+const EYES = ['round','sleepy','wide','side','wink','dots'];
+const MOUTHS = ['smile','flat','oh','grin','smirk','tongue'];
+const ACCS = ['none','none','glasses','earring','bow','monocle','freckles','scar','pencil','flower'];
+
+/* =========================================================
+   2. UTILITIES
+   ========================================================= */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const uid = () => 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+function hash(str){ let h = 2166136261; for (let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function rng(seed){ let s = seed || 1; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return ((s >>> 0) % 100000) / 100000; }; }
+const pick = (r, arr) => arr[Math.floor(r() * arr.length)];
+const nowISO = () => new Date().toISOString();
+
+function toLocalInput(d){
+  if (!d) return '';
+  const dt = new Date(d); if (isNaN(dt)) return '';
+  const p = n => String(n).padStart(2,'0');
+  return `${dt.getFullYear()}-${p(dt.getMonth()+1)}-${p(dt.getDate())}T${p(dt.getHours())}:${p(dt.getMinutes())}`;
+}
+function fromLocalInput(v){ if (!v) return ''; const d = new Date(v); return isNaN(d) ? '' : d.toISOString(); }
+function fmtDate(iso, withTime=true){
+  if (!iso) return '';
+  const d = new Date(iso); if (isNaN(d)) return '';
+  const opts = withTime ? {weekday:'short', day:'numeric', month:'short', hour:'numeric', minute:'2-digit'} : {weekday:'short', day:'numeric', month:'short'};
+  return d.toLocaleString(undefined, opts);
+}
+function dur(ms){
+  const a = Math.abs(ms), m = Math.round(a/60000);
+  if (m < 1) return 'under a minute';
+  if (m < 60) return m + (m===1?' min':' mins');
+  const h = Math.round(a/3600000);
+  if (h < 48) return h + (h===1?' hr':' hrs');
+  const d = Math.round(a/86400000);
+  return d + (d===1?' day':' days');
+}
+function relDeadline(iso){
+  if (!iso) return 'No deadline';
+  const diff = new Date(iso) - Date.now();
+  return diff < 0 ? `${dur(diff)} overdue` : `in ${dur(diff)}`;
+}
+function hoursUntil(iso){ if (!iso) return Infinity; return (new Date(iso) - Date.now()) / 3600000; }
+function titleCase(w){ return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }
+function numberWord(n){ return ['Zero','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten'][n] || String(n); }
+
+/* =========================================================
+   3. STATE + PERSISTENCE
+   ========================================================= */
+let state = null;
+const defaultSettings = () => ({name:'', autoEscalate:true, autoEscalateGreen:false, critters:!REDUCED, throwing:'polite'});
+
+function load(){
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw){
+      const s = JSON.parse(raw);
+      if (s && Array.isArray(s.monkeys)) { state = normaliseState(s); upgradeDemo(); return; }
+    }
+  } catch(e){ console.warn('Could not read saved data', e); }
+  state = {version:1, monkeys:[], customTypes:[], settings:defaultSettings()};
+  seedDemo();
+}
+function normaliseState(s){
+  const out = {version:1, monkeys:[], customTypes:[], settings:Object.assign(defaultSettings(), s.settings||{})};
+  out.customTypes = (s.customTypes||[]).filter(t => t && t.key && t.name).map(t => ({key:String(t.key), name:String(t.name), emoji:String(t.emoji||'🐒'), bucket:BUCKETS[t.bucket]?t.bucket:'amber', kw:Array.isArray(t.kw)?t.kw.map(String):[], desc:String(t.desc||'')}));
+  out.monkeys = s.monkeys.filter(m => m && m.id).map(m => Object.assign(blankMonkey(), m, {
+    notes:Array.isArray(m.notes)?m.notes:[], history:Array.isArray(m.history)?m.history:[], iq:m.iq||{}, step:m.step||{}
+  }));
+  return out;
+}
+function save(){
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch(e){ toast('⚠️ Could not save. Your browser storage may be full or disabled.'); }
+}
+function blankMonkey(){
+  return {id:uid(), seed:Math.random().toString(36).slice(2), name:'', summary:'', description:'', broughtBy:'', owner:'', deadline:'',
+    impact:2, type:'monday', bucket:'pen', status:'active', risk:2, notes:[], history:[], iq:{}, step:{}, response:'',
+    createdAt:nowISO(), bucketSince:nowISO(), migratedFor:'', climbed:false};
+}
+function allTypes(){
+  const t = Object.assign({}, BASE_TYPES);
+  for (const c of state.customTypes) t[c.key] = {name:c.name, emoji:c.emoji, bucket:c.bucket, risk:2, hat:'crown', desc:c.desc || 'Your own monkey type', wait:'Depends on the details. Interrogate it.', kw:c.kw, custom:true};
+  return t;
+}
+const typeOf = m => allTypes()[m.type] || BASE_TYPES.monday;
+const getM = id => state.monkeys.find(m => m.id === id);
+function isMe(owner){
+  const o = String(owner||'').trim().toLowerCase();
+  if (!o) return false;
+  if (['me','i','myself','mine','you','yourself','me!'].includes(o)) return true;
+  const n = (state.settings.name||'').trim().toLowerCase();
+  return !!n && (o === n || o.split(/\s+/)[0] === n.split(/\s+/)[0]);
+}
+const ownerLabel = o => !String(o||'').trim() ? '' : (isMe(o) ? 'You' : o);
+
+/* =========================================================
+   4. LOCAL CLASSIFIER (keyword logic, no AI)
+   ========================================================= */
+const STOP = new Set(('a an the and or but if then so to of in on at by for with from into about over after before up down out off is are was were be been being am '+
+ 'has have had do does did i me my we our you your they them their he she his her it its this that these those there here who whom what when where why how '+
+ 'can could would should will shall may might must just only also very really still again please asap urgent today tomorrow now yet some any all no not '+
+ 'sent says said wants want needs need asked asks looks looked trying tries getting got made make went came keep keeps someone somebody thing things being '+
+ 'without clear like via per one two three new old get let lets going told tell telling saying think thinks thought').split(/\s+/));
+
+function kwHits(text, kws){
+  let n = 0, hits = [];
+  for (const k of kws){
+    const kk = k.toLowerCase();
+    const tail = (kk.length <= 5 && /[a-z]$/.test(kk)) ? '(?![a-z])' : '';
+    const re = new RegExp('(^|[^a-z])' + kk.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + tail);
+    if (re.test(text)){ n++; hits.push(k.trim()); }
+  }
+  return {n, hits};
+}
+
+/* input: {text, impact, deadline, owner, iq} -> {type, bucket, risk, reasons[]} */
+function classify(input){
+  const iq = input.iq || {};
+  const text = ' ' + (String(input.text||'') + ' ' + (iq.happened||'') + ' ' + (iq.tomorrowText||'')).toLowerCase() + ' ';
+  const impact = Number(input.impact) || 2;
+  const deadline = input.deadline || iq.realDeadline || '';
+  // urgency words in the text count as a soft deadline (end of today) when no real deadline is given
+  const textUrgent = /(^|[^a-z])(today|tonight|asap|urgent|urgently|immediately|right now|by end of day|eod)(?![a-z])/.test(text);
+  const h = deadline ? hoursUntil(deadline) : (textUrgent ? 12 : Infinity);
+  const types = allTypes();
+  const score = {}, why = {};
+  const add = (k, v, reason) => { if (!types[k]) return; score[k] = (score[k]||0) + v; if (reason && v > 0) (why[k] = why[k]||[]).push(reason); };
+
+  for (const [k, t] of Object.entries(types)){
+    const {n, hits} = kwHits(text, t.kw||[]);
+    if (n) add(k, n*(k === 'noise' ? 3 : 2), `mentions “${hits.slice(0,2).join('”, “')}”`);
+  }
+  // impact
+  if (impact === 4){ add('compliance',3,'high-stakes impact'); add('fire',2,'high-stakes impact'); }
+  if (impact === 3){ add('customer',2,'affects a team or customer'); add('revenue',1); }
+  if (impact === 1){ add('noise',1,'minor impact'); add('banana',1,'minor impact'); }
+  // deadline
+  if (h <= 0) add('fire', 2, 'deadline already passed');
+  else if (h <= 24) add('fire', impact >= 3 ? 3 : 1, 'due within 24 hours');
+  else if (h > 72 && h < Infinity) add('monday', 1, 'deadline is days away');
+  // ownership from the form
+  const ownerOther = input.owner && !isMe(input.owner);
+  if (ownerOther){ add('delegation', 2, `owner is ${input.owner}`); if (impact <= 2) add('notmine', 2, `owner is ${input.owner}`); }
+  // interrogation answers
+  if (iq.tomorrow === 'harm'){ add('fire', 3, 'waiting until tomorrow causes real harm'); }
+  if (iq.tomorrow === 'nothing'){ add('noise', 2, 'nothing happens if it waits'); add('monday', 1); }
+  const im = iq.impacts || {};
+  if (im.legal || im.safety) add('compliance', 4, 'legal or safety impact');
+  if (im.financial) add('revenue', 3, 'financial impact');
+  if (im.customer) add('customer', 3, 'customer impact');
+  if (im.reputational){ add('fire', 1, 'reputational impact'); add('compliance', 1); }
+  if (iq.belongs === 'nearby'){ add('delegation', 2, 'you are just nearby and capable'); add('notmine', 2, 'you are just nearby and capable'); }
+  if (iq.need === 'attention') add('delegation', 2, 'needs your attention, not your decision');
+  if (iq.need === 'neither') add('notmine', 3, 'needs neither your decision nor attention');
+  if (iq.evidence === 'claimed'){ add('noise', 3, 'urgency is claimed, not evidenced'); add('fire', -2); }
+  if (iq.evidence === 'yes') add('fire', 1, 'urgency is evidenced');
+  if (iq.decisionOwner === 'other' && iq.execOwner === 'other') add('notmine', 3, 'someone else owns decision and execution');
+  if (iq.decisionOwner === 'me' && iq.execOwner === 'other') add('delegation', 3, 'you decide, someone else executes');
+
+  let best = null, bestV = 0;
+  for (const [k, v] of Object.entries(score)) if (v > bestV){ best = k; bestV = v; }
+  if (!best) best = impact >= 4 ? 'compliance' : impact === 3 ? 'customer' : impact === 2 ? 'monday' : 'noise';
+
+  // bucket rules
+  const harm = iq.tomorrow === 'harm';
+  const claimed = iq.evidence === 'claimed' && !Object.values(im).some(Boolean);
+  let bucket = types[best].bucket;
+  if (best === 'customer') bucket = (impact >= 3 && h <= 48) || harm ? 'red' : 'amber';
+  if (best === 'revenue' && impact === 4 && h <= 24) bucket = 'red';
+  if (best === 'people' && (iq.execOwner === 'other' || ownerOther)) bucket = 'blue';
+  if (!['noise','notmine','banana','exiled'].includes(best) && !claimed && ((h <= 24 && impact >= 3) || (harm && impact >= 3))) bucket = 'red';
+  if (iq.decisionOwner === 'other' && iq.execOwner === 'other' && impact <= 2 && !harm) bucket = 'green';
+  if (bucket === 'amber' && ownerOther && iq.decisionOwner !== 'me') bucket = 'blue';
+
+  const risk = riskLevel({impact, type:best, deadline, harm, claimed});
+  return {type:best, bucket, risk, reasons:(why[best]||[]).slice(0,3)};
+}
+function riskLevel({impact, type, deadline, harm, claimed}){
+  const h = hoursUntil(deadline);
+  const t = allTypes()[type] || BASE_TYPES.monday;
+  let s = impact*2 + (t.risk||2) + (h <= 0 ? 4 : h <= 24 ? 3 : h <= 72 ? 1 : 0) + (harm ? 2 : 0) - (claimed ? 2 : 0);
+  return s >= 12 ? 4 : s >= 9 ? 3 : s >= 6 ? 2 : 1;
+}
+function refreshRisk(m){ m.risk = riskLevel({impact:m.impact, type:m.type, deadline:m.deadline, harm:m.iq?.tomorrow==='harm', claimed:m.iq?.evidence==='claimed'}); }
+
+function makeName(text, typeKey){
+  const words = String(text).replace(/[^\p{L}\p{N}\s'-]/gu,' ').split(/\s+/)
+    .filter(w => w.length > 2 && !STOP.has(w.toLowerCase().replace(/'s$/,'')));
+  const uniq = [];
+  for (const w of words){ const l = w.toLowerCase(); if (!uniq.some(u => u.toLowerCase() === l)) uniq.push(w); if (uniq.length === 2) break; }
+  if (!uniq.length) return (allTypes()[typeKey]||BASE_TYPES.monday).name;
+  return limitWords(uniq.map(titleCase).join(' ') + ' Monkey', 5);
+}
+function limitWords(s, n){ return String(s).trim().split(/\s+/).slice(0, n).join(' '); }
+function makeSummary(text){
+  const t = String(text).trim().replace(/\s+/g,' ');
+  if (!t) return '';
+  let s = (t.match(/^.*?[.!?](\s|$)/) || [t])[0].trim();
+  if (s.length > 150) s = s.slice(0, 147).replace(/\s+\S*$/,'') + '…';
+  if (!/[.!?…]$/.test(s)) s += '.';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function waitText(m){
+  if (m.iq && m.iq.tomorrowText) return m.iq.tomorrowText;
+  const base = typeOf(m).wait;
+  if (!m.deadline) return base;
+  const h = hoursUntil(m.deadline);
+  return (h < 0 ? 'Deadline already passed. ' : `Deadline ${relDeadline(m.deadline)}. `) + base;
+}
+
+/* =========================================================
+   5. MONKEY AVATARS (original, trait-based inline SVG)
+   ========================================================= */
+function monkeyTraits(m){
+  const r = rng(hash(m.seed || m.id));
+  let fur = pick(r, FURS), face = pick(r, FACES);
+  const t = {fur, face, bg:pick(r, BGS), eyes:pick(r, EYES), mouth:pick(r, MOUTHS), acc:pick(r, ACCS), tilt:Math.round((r()-.5)*10), earSize:7 + Math.round(r()*4)};
+  if (m.type === 'zombie'){ t.fur = ['#6F8B5E','#4F6843']; t.face = '#B9C9A0'; }
+  t.hat = typeOf(m).hat;
+  return t;
+}
+function eyesSVG(kind, ink){
+  const L = 40, R = 60, Y = 47;
+  switch(kind){
+    case 'sleepy': return `<path d="M${L-5} ${Y}q5 4 10 0M${R-5} ${Y}q5 4 10 0" stroke="${ink}" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M${L-6} ${Y-3}h12M${R-6} ${Y-3}h12" stroke="${ink}" stroke-width="2" stroke-linecap="round" opacity=".6"/>`;
+    case 'wide': return `<circle cx="${L}" cy="${Y}" r="5.5" fill="#fff" stroke="${ink}" stroke-width="1.6"/><circle cx="${R}" cy="${Y}" r="5.5" fill="#fff" stroke="${ink}" stroke-width="1.6"/><circle cx="${L}" cy="${Y}" r="2.6" fill="${ink}"/><circle cx="${R}" cy="${Y}" r="2.6" fill="${ink}"/>`;
+    case 'side': return `<ellipse cx="${L}" cy="${Y}" rx="5" ry="4" fill="#fff" stroke="${ink}" stroke-width="1.6"/><ellipse cx="${R}" cy="${Y}" rx="5" ry="4" fill="#fff" stroke="${ink}" stroke-width="1.6"/><circle cx="${L+2.4}" cy="${Y}" r="2.2" fill="${ink}"/><circle cx="${R+2.4}" cy="${Y}" r="2.2" fill="${ink}"/>`;
+    case 'wink': return `<circle cx="${L}" cy="${Y}" r="3.4" fill="${ink}"/><circle cx="${L+1}" cy="${Y-1}" r="1" fill="#fff"/><path d="M${R-5} ${Y}q5-4 10 0" stroke="${ink}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+    case 'dots': return `<circle cx="${L}" cy="${Y}" r="2.4" fill="${ink}"/><circle cx="${R}" cy="${Y}" r="2.4" fill="${ink}"/>`;
+    default: return `<circle cx="${L}" cy="${Y}" r="3.6" fill="${ink}"/><circle cx="${R}" cy="${Y}" r="3.6" fill="${ink}"/><circle cx="${L+1.2}" cy="${Y-1.2}" r="1.1" fill="#fff"/><circle cx="${R+1.2}" cy="${Y-1.2}" r="1.1" fill="#fff"/>`;
+  }
+}
+function mouthSVG(kind, ink){
+  switch(kind){
+    case 'flat': return `<path d="M44 68h12" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/>`;
+    case 'oh': return `<ellipse cx="50" cy="68" rx="3.4" ry="4" fill="${ink}"/>`;
+    case 'grin': return `<path d="M41 65q9 9 18 0z" fill="${ink}"/><path d="M43 65.5h14v2.2H43z" fill="#fff"/>`;
+    case 'smirk': return `<path d="M43 68q7 3 13-3" stroke="${ink}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+    case 'tongue': return `<path d="M42 65q8 7 16 0" stroke="${ink}" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M47 68q3 6 6 0" fill="#E0656B"/>`;
+    default: return `<path d="M42 65q8 7 16 0" stroke="${ink}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+  }
+}
+function hatSVG(kind, ink){
+  switch(kind){
+    case 'hardhat': return `<path d="M27 30q23-26 46 0z" fill="#F5C518" stroke="${ink}" stroke-width="2"/><rect x="22" y="28" width="56" height="6" rx="3" fill="#F5C518" stroke="${ink}" stroke-width="2"/><rect x="47" y="10" width="6" height="18" rx="2" fill="#E0AE0C"/>`;
+    case 'helmet': return `<path d="M26 32q24-30 48 0z" fill="#C8372D" stroke="${ink}" stroke-width="2"/><path d="M20 32q30 8 60 0l-4 5q-26 6-52 0z" fill="#9E2A22" stroke="${ink}" stroke-width="2"/><path d="M46 13l4-3 4 3-1 9h-6z" fill="#F2C94C" stroke="${ink}" stroke-width="1.5"/>`;
+    case 'visor': return `<path d="M28 27h44l6 6H22z" fill="#2E8B57" stroke="${ink}" stroke-width="2"/><rect x="28" y="22" width="44" height="6" rx="3" fill="#2E8B57" stroke="${ink}" stroke-width="2"/><text x="50" y="27.5" font-size="6" text-anchor="middle" fill="#fff" font-weight="700" font-family="system-ui">$</text>`;
+    case 'headset': return `<path d="M26 46q0-28 24-28t24 28" fill="none" stroke="${ink}" stroke-width="3"/><rect x="20" y="40" width="9" height="14" rx="4" fill="#3B82C4" stroke="${ink}" stroke-width="2"/><rect x="71" y="40" width="9" height="14" rx="4" fill="#3B82C4" stroke="${ink}" stroke-width="2"/><path d="M26 54q4 14 16 15" fill="none" stroke="${ink}" stroke-width="2"/><circle cx="43" cy="69" r="2.4" fill="${ink}"/>`;
+    case 'beanie': return `<path d="M27 32q23-28 46 0z" fill="#E86A92" stroke="${ink}" stroke-width="2"/><rect x="25" y="28" width="50" height="7" rx="3" fill="#C9507A" stroke="${ink}" stroke-width="2"/><circle cx="50" cy="12" r="5" fill="#fff" stroke="${ink}" stroke-width="2"/>`;
+    case 'cap': return `<path d="M28 31q22-26 44 0z" fill="#3E6E99" stroke="${ink}" stroke-width="2"/><path d="M60 29q16-2 22 4l-22 1z" fill="#2B5A84" stroke="${ink}" stroke-width="2"/><circle cx="50" cy="15" r="2" fill="${ink}"/>`;
+    case 'beret': return `<ellipse cx="46" cy="26" rx="25" ry="9" fill="#7A3E9D" stroke="${ink}" stroke-width="2" transform="rotate(-10 46 26)"/><path d="M45 17l2-5" stroke="${ink}" stroke-width="2.4" stroke-linecap="round"/>`;
+    case 'headphones': return `<path d="M25 48q0-30 25-30t25 30" fill="none" stroke="#E4572E" stroke-width="5"/><rect x="18" y="40" width="11" height="17" rx="5" fill="#E4572E" stroke="${ink}" stroke-width="2"/><rect x="71" y="40" width="11" height="17" rx="5" fill="#E4572E" stroke="${ink}" stroke-width="2"/>`;
+    case 'shades': return `<rect x="31" y="41" width="16" height="10" rx="4" fill="${ink}"/><rect x="53" y="41" width="16" height="10" rx="4" fill="${ink}"/><path d="M47 45h6" stroke="${ink}" stroke-width="2.5"/><path d="M34 43l5 0" stroke="#fff" stroke-width="1.5" opacity=".7"/>`;
+    case 'hood': return `<path d="M14 62q-2-50 36-50t36 50q-6-30-36-30T14 62z" fill="#4A4F57" stroke="${ink}" stroke-width="2"/><rect x="30" y="41" width="40" height="11" rx="5" fill="${ink}" opacity=".85"/><circle cx="40" cy="46.5" r="2.6" fill="#fff"/><circle cx="60" cy="46.5" r="2.6" fill="#fff"/>`;
+    case 'bandage': return `<rect x="30" y="23" width="40" height="8" rx="3" fill="#F3EEE2" stroke="${ink}" stroke-width="1.8" transform="rotate(-14 50 27)"/><path d="M38 26l2 4M46 24l2 4M54 22l2 4" stroke="#B9AE96" stroke-width="1.4"/><path d="M58 58l8 3M60 55l-1 7M64 56l-1 7" stroke="${ink}" stroke-width="1.4"/>`;
+    case 'party': return `<path d="M38 28l12-24 12 24z" fill="#F2C94C" stroke="${ink}" stroke-width="2"/><path d="M41 22l14-2M44 15l9-1" stroke="#E4572E" stroke-width="2"/><circle cx="50" cy="4" r="3.4" fill="#E4572E" stroke="${ink}" stroke-width="1.5"/>`;
+    case 'crown': return `<path d="M32 28l4-14 8 8 6-11 6 11 8-8 4 14z" fill="#F2C94C" stroke="${ink}" stroke-width="2"/>`;
+    default: return '';
+  }
+}
+function accSVG(kind, ink){
+  switch(kind){
+    case 'glasses': return `<circle cx="40" cy="47" r="7" fill="none" stroke="${ink}" stroke-width="2"/><circle cx="60" cy="47" r="7" fill="none" stroke="${ink}" stroke-width="2"/><path d="M47 47h6" stroke="${ink}" stroke-width="2"/>`;
+    case 'earring': return `<circle cx="17" cy="57" r="3.4" fill="none" stroke="#E0B12A" stroke-width="2.2"/>`;
+    case 'bow': return `<path d="M50 85l-10-6v12zM50 85l10-6v12z" fill="#E4572E" stroke="${ink}" stroke-width="1.6"/><circle cx="50" cy="85" r="2.6" fill="#B23E1F"/>`;
+    case 'monocle': return `<circle cx="60" cy="47" r="7.5" fill="rgba(255,255,255,.3)" stroke="#C99A12" stroke-width="2"/><path d="M67 50q4 10 2 22" stroke="#C99A12" stroke-width="1.4" fill="none"/>`;
+    case 'freckles': return `<g fill="#B07A50" opacity=".8"><circle cx="35" cy="57" r="1"/><circle cx="38" cy="59" r="1"/><circle cx="34" cy="60" r="1"/><circle cx="65" cy="57" r="1"/><circle cx="62" cy="59" r="1"/><circle cx="66" cy="60" r="1"/></g>`;
+    case 'scar': return `<path d="M62 37l5 13M61 41l5-1M63 45l5-1" stroke="${ink}" stroke-width="1.5" opacity=".7"/>`;
+    case 'pencil': return `<g transform="rotate(-30 80 40)"><rect x="72" y="36" width="20" height="5" fill="#F2C94C" stroke="${ink}" stroke-width="1.2"/><path d="M92 36l5 2.5-5 2.5z" fill="#E9C49A" stroke="${ink}" stroke-width="1.2"/></g>`;
+    case 'flower': return `<g transform="translate(76 30)"><circle r="3.5" cy="-4" fill="#F4A7A3"/><circle r="3.5" cy="4" fill="#F4A7A3"/><circle r="3.5" cx="-4" fill="#F4A7A3"/><circle r="3.5" cx="4" fill="#F4A7A3"/><circle r="2.6" fill="#F2C94C"/></g>`;
+    default: return '';
+  }
+}
+/* Head portrait used on cards (square, with background) */
+function avatarSVG(m, opts={}){
+  const t = monkeyTraits(m), ink = '#2B2118';
+  const [furA, furB] = t.fur, e = t.earSize;
+  const bg = opts.noBg ? '' : `<rect width="100" height="100" fill="${t.bg}"/><circle cx="82" cy="18" r="22" fill="#fff" opacity=".22"/>`;
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(m.name || 'Monkey')} avatar">${bg}
+  <g transform="rotate(${t.tilt} 50 55)">
+    <path d="M30 100q0-20 20-20t20 20z" fill="${furB}"/>
+    <circle cx="20" cy="52" r="${e+4}" fill="${furA}" stroke="${ink}" stroke-width="2"/><circle cx="20" cy="52" r="${e}" fill="${t.face}"/>
+    <circle cx="80" cy="52" r="${e+4}" fill="${furA}" stroke="${ink}" stroke-width="2"/><circle cx="80" cy="52" r="${e}" fill="${t.face}"/>
+    <ellipse cx="50" cy="52" rx="30" ry="29" fill="${furA}" stroke="${ink}" stroke-width="2"/>
+    <path d="M44 25q6-8 12 0" stroke="${furB}" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M30 51c0-11 8-15 20-8 12-7 20-3 20 8 0 3-1 5-2 7 3 4 4 7 4 10 0 9-10 13-22 13s-22-4-22-13c0-3 1-6 4-10-1-2-2-4-2-7z" fill="${t.face}"/>
+    ${eyesSVG(t.eyes, ink)}
+    <circle cx="47" cy="59" r="1.4" fill="${ink}"/><circle cx="53" cy="59" r="1.4" fill="${ink}"/>
+    ${mouthSVG(t.mouth, ink)}
+    ${accSVG(t.acc, ink)}
+    ${hatSVG(t.hat, ink)}
+  </g></svg>`;
+}
+/* Full-body walking monkey for the critter strip */
+function critterSVG(m, pose){
+  const t = monkeyTraits(m), ink = '#2B2118';
+  const [furA, furB] = t.fur;
+  const arms = pose === 'carry'
+    ? `<path class="arm" d="M32 86q-18-26-12-72" stroke="${furA}" stroke-width="7" fill="none" stroke-linecap="round"/>
+       <path class="arm" d="M68 86q18-26 12-72" stroke="${furA}" stroke-width="7" fill="none" stroke-linecap="round"/>`
+    : `<path class="arm" d="M32 86q-14 10-10 24" stroke="${furA}" stroke-width="7" fill="none" stroke-linecap="round"/>
+       <path class="arm" d="M68 86q14 8 12 22" stroke="${furA}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+  return `<svg viewBox="0 0 100 124" xmlns="http://www.w3.org/2000/svg">
+    <path d="M70 100q26 0 22-26t-14-10" stroke="${furB}" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="50" cy="96" rx="20" ry="22" fill="${furA}" stroke="${ink}" stroke-width="2"/>
+    <ellipse cx="50" cy="100" rx="12" ry="14" fill="${t.face}"/>
+    ${arms}
+    <ellipse cx="40" cy="120" rx="8" ry="4" fill="${furB}"/><ellipse cx="60" cy="120" rx="8" ry="4" fill="${furB}"/>
+    <g transform="translate(0 -6) scale(1)">
+      <circle cx="20" cy="52" r="11" fill="${furA}" stroke="${ink}" stroke-width="2"/><circle cx="20" cy="52" r="7" fill="${t.face}"/>
+      <circle cx="80" cy="52" r="11" fill="${furA}" stroke="${ink}" stroke-width="2"/><circle cx="80" cy="52" r="7" fill="${t.face}"/>
+      <ellipse cx="50" cy="52" rx="30" ry="29" fill="${furA}" stroke="${ink}" stroke-width="2"/>
+      <path d="M30 51c0-11 8-15 20-8 12-7 20-3 20 8 0 3-1 5-2 7 3 4 4 7 4 10 0 9-10 13-22 13s-22-4-22-13c0-3 1-6 4-10-1-2-2-4-2-7z" fill="${t.face}"/>
+      ${eyesSVG(t.eyes, ink)}
+      <circle cx="47" cy="59" r="1.4" fill="${ink}"/><circle cx="53" cy="59" r="1.4" fill="${ink}"/>
+      ${mouthSVG(t.mouth, ink)}${accSVG(t.acc === 'bow' ? 'none' : t.acc, ink)}${hatSVG(t.hat, ink)}
+    </g></svg>`;
+}
+</script>
+<script>
+"use strict";
+/* =========================================================
+   6. DEMO CONTENT
+   ========================================================= */
+function nextWeekday(dow, hour){ // dow 1 = Monday
+  const d = new Date(); d.setHours(hour,0,0,0);
+  let add = (dow - d.getDay() + 7) % 7; if (add === 0) add = 7;
+  d.setDate(d.getDate() + add); return d.toISOString();
+}
+function demoData(){
+  const H = 3600000, now = Date.now();
+  return [
+    {name:'Compliance Monkey', type:'compliance', bucket:'red', impact:4, owner:'Me', broughtBy:'IT security',
+     summary:'Client data was emailed to the wrong distribution list.',
+     description:'Client data was emailed to the wrong distribution list this morning. Two external recipients have not yet confirmed they deleted it.',
+     deadline:new Date(now + 2*H).toISOString(),
+     iq:{decisionOwner:'me', execOwner:'me', tomorrow:'harm', impacts:{legal:true, customer:true, reputational:true}, belongs:'mine', need:'decision', evidence:'yes', nextAction:'Ask the external recipients to delete it in writing, then log the incident with IT security.'}},
+    {name:'Monday Monkey', type:'monday', bucket:'amber', impact:3, owner:'Me', broughtBy:'HR business partner',
+     summary:'Review the team’s compensation bands.',
+     description:'Review the team’s compensation bands before the mid-year review cycle.',
+     deadline:nextWeekday(1, 10), iq:{decisionOwner:'me', tomorrow:'nothing', belongs:'mine', need:'decision'}},
+    {name:'Delegation Monkey', type:'delegation', bucket:'pen', impact:2, owner:'Project lead', broughtBy:'Vendor account manager',
+     summary:'Vendor needs signed-off requirements.',
+     description:'Vendor needs signed-off requirements for the reporting dashboard before they start the build.',
+     deadline:new Date(now + 72*H).toISOString(), iq:{decisionOwner:'me', execOwner:'other', need:'attention', belongs:'nearby'}},
+    {name:'Noise Monkey', type:'noise', bucket:'green', impact:1, owner:'', broughtBy:'A colleague',
+     summary:'Someone heard a reorg might be announced next quarter.',
+     description:'Someone heard from someone in another department that a reorg might be announced next quarter.',
+     deadline:'', iq:{tomorrow:'nothing', evidence:'claimed', need:'neither'}},
+    {name:'Exiled Monkey', type:'exiled', bucket:'green', impact:2, owner:'', broughtBy:'Unknown',
+     summary:'A former consultant wants back on the steering committee.',
+     description:'A former consultant wants back on the steering committee without a clear business reason.',
+     deadline:'', iq:{evidence:'claimed', need:'neither'}}
+  ];
+}
+const isDemo = m => !!(m.history && m.history[0] && m.history[0].reason === 'Summoned (demo monkey)');
+/* Earlier versions shipped clinical and retail demo monkeys. Rewrite their wording in place,
+   keeping bucket, notes, history and anything the user changed. */
+const OLD_DEMO = {
+  'Patient information was sent to the wrong recipient.':0,
+  'Review six-month staff compensation bands.':1,
+  'Supplier wants updated display measurements.':2,
+  'Someone says a former business partner looked through the showroom window.':3,
+  'An old problem is trying to regain access without a clear business reason.':4
+};
+const OLD_PEOPLE = ['Front desk','Operations lead','Store manager','Supplier rep'];
+const OLD_NEXT = 'Ask the recipient to delete it in writing, then log the incident.';
+function upgradeDemo(){
+  const fresh = demoData(); let n = 0;
+  state.monkeys.forEach(m => {
+    const i = OLD_DEMO[m.summary]; if (i === undefined) return;
+    const d = fresh[i];
+    m.summary = d.summary; m.description = d.description;
+    if (OLD_PEOPLE.includes(m.owner)) m.owner = d.owner;
+    if (OLD_PEOPLE.includes(m.broughtBy)) m.broughtBy = d.broughtBy;
+    if (m.iq && m.iq.nextAction === OLD_NEXT) m.iq.nextAction = d.iq.nextAction;
+    n++;
+  });
+  if (n) save();
+  return n;
+}
+function seedDemo(){
+  const H = 3600000, now = Date.now(), demo = demoData();
+  state.monkeys = state.monkeys.filter(m => !isDemo(m)); // reloading replaces the demo set instead of piling up copies
+  const seeds = ['ape-alpha','gorilla-glue','banana-bread','window-watch','door-knock'];
+  demo.forEach((d, i) => {
+    const m = Object.assign(blankMonkey(), d, {seed:seeds[i], createdAt:new Date(now - (5-i)*H).toISOString(), bucketSince:new Date(now - (i+1)*40*60000).toISOString()});
+    m.history = [{from:'none', to:'pen', at:m.createdAt, reason:'Summoned (demo monkey)'}];
+    if (m.bucket !== 'pen') m.history.push({from:'pen', to:m.bucket, at:m.bucketSince, reason:'Sorted in the demo'});
+    refreshRisk(m);
+    state.monkeys.push(m);
+  });
+  save();
+}
+
+/* =========================================================
+   7. INTERROGATION FORM (shared by intake and edit dialog)
+   ========================================================= */
+function radioGroup(name, opts, legendId){
+  return `<div class="chips" role="radiogroup" aria-labelledby="${legendId}">` + opts.map(([v, l]) =>
+    `<label class="chip-opt"><input type="radio" name="${name}" value="${v}"><span>${l}</span></label>`).join('') + `</div>`;
+}
+function buildIQ(container, prefix){
+  const p = prefix;
+  container.innerHTML = `
+  <p class="hint" style="margin:0">Answer what you can. Each answer nudges the suggested monkey type and bucket.</p>
+  <ol>
+    <li><label for="${p}happened">What actually happened?</label><textarea id="${p}happened" data-iq="happened" rows="2" placeholder="Facts only. What did you see or receive?"></textarea></li>
+    <li><span class="lbl" id="${p}l2" style="font-weight:600">Who owns the decision?</span>${radioGroup(p+'decisionOwner', [['me','Me'],['other','Someone else'],['unclear','Unclear']], p+'l2')}
+        <input class="sub" type="text" data-iq="decisionWho" aria-label="Name of the decision owner" placeholder="Name (optional)"></li>
+    <li><span class="lbl" id="${p}l3" style="font-weight:600">Who owns the execution?</span>${radioGroup(p+'execOwner', [['me','Me'],['other','Someone else'],['unclear','Unclear']], p+'l3')}
+        <input class="sub" type="text" data-iq="execWho" aria-label="Name of the execution owner" placeholder="Name (optional)"></li>
+    <li><label for="${p}realDeadline">What is the real deadline?</label><input type="datetime-local" id="${p}realDeadline" data-iq="realDeadline"></li>
+    <li><span class="lbl" id="${p}l5" style="font-weight:600">What specifically happens if this waits until tomorrow?</span>${radioGroup(p+'tomorrow', [['nothing','Nothing much'],['mild','Mild annoyance'],['harm','Real harm or cost']], p+'l5')}
+        <input class="sub" type="text" data-iq="tomorrowText" aria-label="Describe what happens if it waits" placeholder="Be specific…"></li>
+    <li><span class="lbl" id="${p}l6" style="font-weight:600">Is there financial, legal, safety, customer or reputational impact?</span>
+        <div class="chips" role="group" aria-labelledby="${p}l6">${['financial','legal','safety','customer','reputational'].map(k => `<label class="chip-opt"><input type="checkbox" data-imp="${k}"><span>${titleCase(k)}</span></label>`).join('')}</div></li>
+    <li><span class="lbl" id="${p}l7" style="font-weight:600">Am I being asked because it belongs to me, or because I am nearby and capable?</span>${radioGroup(p+'belongs', [['mine','It belongs to me'],['nearby','I’m just nearby and capable'],['unsure','Not sure']], p+'l7')}</li>
+    <li><span class="lbl" id="${p}l8" style="font-weight:600">Does this require my decision, or merely my attention?</span>${radioGroup(p+'need', [['decision','My decision'],['attention','Just my attention'],['neither','Neither']], p+'l8')}</li>
+    <li><span class="lbl" id="${p}l9" style="font-weight:600">Is the urgency supported by evidence?</span>${radioGroup(p+'evidence', [['yes','Yes, there is evidence'],['claimed','Someone just says so'],['none','No urgency claimed']], p+'l9')}</li>
+    <li><label for="${p}nextAction">What is the smallest responsible next action?</label><input type="text" id="${p}nextAction" data-iq="nextAction" placeholder="e.g. Ask for the actual deadline in writing"></li>
+  </ol>
+  <div><button type="button" class="btn small ghost" data-iq-clear>Clear answers</button></div>`;
+  container.dataset.prefix = p;
+  container.querySelector('[data-iq-clear]').addEventListener('click', () => { fillIQ(container, {}); container.dispatchEvent(new Event('input', {bubbles:true})); });
+}
+function readIQ(container){
+  const p = container.dataset.prefix, iq = {};
+  $$('[data-iq]', container).forEach(el => { if (el.value.trim()) iq[el.dataset.iq] = el.type === 'datetime-local' ? fromLocalInput(el.value) : el.value.trim(); });
+  for (const k of ['decisionOwner','execOwner','tomorrow','belongs','need','evidence']){
+    const c = container.querySelector(`input[name="${p+k}"]:checked`); if (c) iq[k] = c.value;
+  }
+  const imps = {}; $$('[data-imp]', container).forEach(el => { if (el.checked) imps[el.dataset.imp] = true; });
+  if (Object.keys(imps).length) iq.impacts = imps;
+  return iq;
+}
+function fillIQ(container, iq){
+  iq = iq || {};
+  const p = container.dataset.prefix;
+  $$('[data-iq]', container).forEach(el => { const v = iq[el.dataset.iq] || ''; el.value = el.type === 'datetime-local' ? toLocalInput(v) : v; });
+  $$('input[type=radio]', container).forEach(el => { const k = el.name.slice(p.length); el.checked = iq[k] === el.value; });
+  $$('[data-imp]', container).forEach(el => { el.checked = !!(iq.impacts && iq.impacts[el.dataset.imp]); });
+}
+function iqAnswered(iq){ return Object.keys(iq||{}).length; }
+
+/* =========================================================
+   8. RENDERING
+   ========================================================= */
+const active = () => state.monkeys.filter(m => m.status === 'active');
+function isOverdue(m){ return m.status === 'active' && m.deadline && new Date(m.deadline) < new Date(); }
+function needsOwner(m){ return m.status === 'active' && m.bucket !== 'green' && !String(m.owner||'').trim(); }
+
+function renderDashboard(){
+  const a = active();
+  const c = {red:0, amber:0, blue:0, green:0, pen:0};
+  a.forEach(m => c[m.bucket] = (c[m.bucket]||0) + 1);
+  const noOwner = a.filter(needsOwner).length, over = a.filter(isOverdue).length;
+  const items = [
+    ['c-red', c.red, 'Need action now'], ['c-amber', c.amber, 'Scheduled'], ['c-blue', c.blue, 'Delegated'],
+    ['c-green', c.green, 'Rejected'], ['c-owner' + (noOwner?' alert':''), noOwner, 'No owner'], ['c-over' + (over?' alert':''), over, 'Overdue']
+  ];
+  $('#counters').innerHTML = items.map(([cls, n, l]) => `<li class="counter ${cls}"><b>${n}</b><span>${l}</span></li>`).join('');
+  $('#status').innerHTML = `<span aria-hidden="true">🐒</span><span class="bubble">${esc(statusLine(c, noOwner, over, a.length))}</span>`;
+}
+function statusLine(c, noOwner, over, total){
+  if (!total) return 'Wildlife reserve stable. Not a single monkey on the loose.';
+  if (over) return `${numberWord(over)} ${over===1?'monkey is':'monkeys are'} past deadline. They are not getting calmer.`;
+  if (c.red >= 3) return 'Too many fire monkeys. Stop accepting bananas.';
+  if (noOwner >= 2) return `${numberWord(noOwner)} monkeys have no owner. Nearby competence is not ownership.`;
+  if (c.pen >= 3) return 'The holding pen is getting loud. Sort them before they sort you.';
+  if (c.green > c.red + c.amber + c.blue) return 'Most of today’s chaos is not your monkey.';
+  if (c.red === 0) return 'Wildlife reserve stable.';
+  if (c.red === 1) return 'One monkey on fire. Contain it, then breathe.';
+  return 'The circus is operational, but governance is questionable.';
+}
+
+function renderBoard(){
+  const keepFocus = document.activeElement && document.activeElement.closest && document.activeElement.closest('.card');
+  const focusId = keepFocus ? keepFocus.dataset.id : null;
+  const matrix = $('#matrix');
+  if (!matrix.children.length){
+    matrix.innerHTML = BUCKET_ORDER.map(k => { const b = BUCKETS[k]; return `
+      <section class="q" data-drop="${k}" aria-labelledby="qh-${k}">
+        <div class="q-head">
+          <div class="q-icon" aria-hidden="true">${b.icon}</div>
+          <div><h2 id="qh-${k}">${b.title}</h2><div class="sub">${b.sub}</div></div>
+          <span class="count" id="qc-${k}" aria-label="">0</span>
+          <p class="action-label">${b.action}</p>
+          <details class="uses"><summary>What belongs here</summary><ul>${b.uses.map(u=>`<li>${u}</li>`).join('')}</ul><p><b>Typical monkeys:</b> ${b.examples}</p></details>
+        </div>
+        <ul class="cards" id="list-${k}" data-drop="${k}" aria-label="${b.title} monkeys"></ul>
+      </section>`; }).join('');
+  }
+  const groups = {pen:[], red:[], amber:[], blue:[], green:[]};
+  active().forEach(m => (groups[m.bucket] || groups.pen).push(m));
+  for (const k of Object.keys(groups)){
+    const list = $('#list-' + k);
+    const arr = groups[k].sort((a,b) => (b.risk - a.risk) || (hoursUntil(a.deadline) - hoursUntil(b.deadline)));
+    list.innerHTML = arr.length ? arr.map(cardHTML).join('') :
+      `<li class="empty">${k === 'pen' ? 'No monkeys waiting. Describe one above and summon it.' : 'Drop a monkey here.'}</li>`;
+    if (k !== 'pen'){ const c = $('#qc-' + k); c.textContent = arr.length; c.setAttribute('aria-label', `${arr.length} monkeys`); }
+  }
+  $('#penCount').textContent = groups.pen.length ? `${groups.pen.length} waiting` : '';
+  applyFocus();
+  hideCarried();
+  if (focusId){ const el = $(`.card[data-id="${focusId}"]`); if (el) el.focus({preventScroll:true}); }
+}
+
+function cardHTML(m){
+  const t = typeOf(m), b = BUCKETS[m.bucket];
+  const owner = ownerLabel(m.owner);
+  const flags = [];
+  if (isOverdue(m)) flags.push(`<span class="flag over">⏰ Overdue</span>`);
+  else if (m.deadline && hoursUntil(m.deadline) <= 24) flags.push(`<span class="flag soon">⏳ Due ${relDeadline(m.deadline)}</span>`);
+  if (needsOwner(m)) flags.push(`<span class="flag noown">🚩 No owner</span>`);
+  if (m.climbed && m.bucket === 'red') flags.push(`<span class="flag climb">🧗 Climbed up: deadline reached</span>`);
+  if (m.bucket === 'green' && m.step && m.step.disposition) flags.push(`<span class="flag status">${esc(DISPO[m.step.disposition]||'')}</span>`);
+  const nextText = (m.iq && m.iq.nextAction) || (b ? b.action : '');
+  const sugg = m.bucket === 'pen' ? classifyMonkey(m).bucket : null;
+  const moveOpts = ['pen', ...BUCKET_ORDER].map(k => `<option value="${k}" ${k===m.bucket?'disabled':''}>${k==='pen'?'0. Holding pen':BUCKETS[k].n + '. ' + BUCKETS[k].title}${k===m.bucket?' (here now)':''}</option>`).join('');
+  const label = `${m.name}. ${t.name}. ${m.summary} Owner: ${owner||'none'}. ${m.deadline ? 'Deadline ' + relDeadline(m.deadline) : 'No deadline'}. Risk ${RISK_LABEL[m.risk].slice(2)}. In ${PLACE_LABEL[m.bucket]}.`;
+  return `<li class="card" data-id="${m.id}" tabindex="0" aria-label="${esc(label)}">
+    <div class="card-top drag-handle">
+      <div class="ava">${avatarSVG(m)}</div>
+      <div><h3>${esc(m.name)}</h3>${m.name.trim().toLowerCase() === t.name.toLowerCase() ? `<span class="type-chip"><span aria-hidden="true">${t.emoji}</span>${esc(BUCKETS[m.bucket] ? BUCKETS[m.bucket].title : 'Unsorted')}</span>` : `<span class="type-chip"><span aria-hidden="true">${t.emoji}</span>${esc(t.name)}</span>`}</div>
+      <span class="grip" title="Drag me" aria-hidden="true">⠿</span>
+    </div>
+    <p class="sum">${esc(m.summary)}</p>
+    ${flags.length ? `<div class="flags">${flags.join('')}</div>` : ''}
+    <dl class="meta">
+      <div><dt>Owner</dt><dd>${owner ? esc(owner) : '<i>Nobody yet</i>'}</dd></div>
+      <div><dt>Deadline</dt><dd>${m.deadline ? esc(fmtDate(m.deadline)) : 'None'}</dd></div>
+      <div><dt>Risk</dt><dd><span class="risk r${m.risk}">${RISK_LABEL[m.risk]}</span></dd></div>
+      <div><dt>In this ${m.bucket==='pen'?'pen':'bucket'}</dt><dd data-since="${esc(m.bucketSince)}">${dur(Date.now() - new Date(m.bucketSince))}</dd></div>
+    </dl>
+    <p class="wait"><b>If it waits:</b> ${esc(waitText(m))}</p>
+    ${sugg ? `<div class="suggest-row"><span>Suggested: <span class="bucket-tag ${sugg}">${BUCKETS[sugg].icon} ${BUCKETS[sugg].title}</span></span><button type="button" class="btn small banana" data-act="send" data-to="${sugg}">Send there</button></div>`
+           : `<p class="next"><b>Next:</b> ${esc(nextText)}${m.notes.length ? ` <span class="hint">📝 ${m.notes.length} note${m.notes.length>1?'s':''}</span>` : ''}</p>`}
+    <div class="card-actions">
+      <select data-act="move" aria-label="Move ${esc(m.name)} to another bucket"><option value="" selected disabled>Move to…</option>${moveOpts}</select>
+      <button type="button" class="btn small ghost" data-act="edit" aria-label="Edit ${esc(m.name)}">✎ Edit</button>
+      <button type="button" class="btn small" data-act="done" aria-label="Mark ${esc(m.name)} complete">✓ Done</button>
+      <button type="button" class="btn small ghost" data-act="more" aria-haspopup="menu" aria-expanded="false" aria-label="More actions for ${esc(m.name)}">⋯</button>
+    </div>
+  </li>`;
+}
+function classifyMonkey(m){ return classify({text:m.description || m.summary, impact:m.impact, deadline:m.deadline, owner:m.owner, iq:m.iq}); }
+
+let vaultTab = 'done';
+function renderVault(){
+  const done = state.monkeys.filter(m => m.status === 'done'), arch = state.monkeys.filter(m => m.status === 'archived');
+  $('#vDoneN').textContent = `(${done.length})`; $('#vArchN').textContent = `(${arch.length})`;
+  const list = vaultTab === 'done' ? done : arch;
+  $$('[data-vtab]').forEach(b => { const on = b.dataset.vtab === vaultTab; b.setAttribute('aria-selected', on); b.classList.toggle('ghost', !on); });
+  $('#vaultList').setAttribute('aria-labelledby', 'tab-' + vaultTab);
+  const last = m => (m.history[m.history.length-1] || {}).at;
+  list.sort((a,b) => new Date(last(b)) - new Date(last(a)));
+  $('#vaultList').innerHTML = list.length ? list.map(m => `
+    <li class="vault-item" data-id="${m.id}">
+      <div class="ava">${avatarSVG(m)}</div>
+      <div><b>${esc(m.name)}</b><p>${esc(m.summary)}</p><p>${vaultTab==='done'?'Completed':'Archived'} ${esc(fmtDate(last(m)))}${m.prevBucket ? `, from ${esc(PLACE_LABEL[m.prevBucket])}` : ''}</p></div>
+      <div class="acts">
+        <button type="button" class="btn small" data-vact="restore">Restore</button>
+        <button type="button" class="btn small ghost" data-vact="view">View</button>
+        <button type="button" class="btn small ghost danger" data-vact="delete" aria-label="Delete ${esc(m.name)} permanently">Delete</button>
+      </div>
+    </li>`).join('') : `<li class="empty" style="list-style:none;color:var(--ink-2)">${vaultTab==='done' ? 'No completed monkeys yet. Finish one and the vault fills with bananas.' : 'Nothing archived.'}</li>`;
+}
+
+function renderAll(){ renderDashboard(); renderBoard(); renderVault(); syncCritters(); }
+
+/* Live forecast while typing in the intake form */
+function intakeInput(){
+  return {
+    text:$('#fDesc').value, broughtBy:$('#fBrought').value.trim(), owner:$('#fOwner').value.trim(),
+    deadline:fromLocalInput($('#fDeadline').value), impact:Number(($('input[name=impact]:checked')||{}).value || 2),
+    iq:readIQ($('#intakeIQ'))
+  };
+}
+function renderForecast(){
+  const inp = intakeInput(), el = $('#forecast');
+  if (!inp.text.trim() && !iqAnswered(inp.iq)){
+    el.innerHTML = `<span aria-hidden="true" style="font-size:1.6rem">🔮</span><span>Start describing it. The monkey forecast appears here: type, bucket and why.</span>`; return;
+  }
+  const r = classify(inp), t = allTypes()[r.type], b = BUCKETS[r.bucket];
+  const fake = {seed:'forecast-' + (inp.text.length % 7), id:'f', type:r.type, name:t.name};
+  el.innerHTML = `<div class="ava">${avatarSVG(fake)}</div><div><strong>${t.emoji} ${esc(t.name)}</strong>, heading for <span class="bucket-tag ${r.bucket}">${b.icon} ${b.title}</span>. Risk: <span class="risk r${r.risk}">${RISK_LABEL[r.risk]}</span>
+    <div class="hint">${r.reasons.length ? 'Why: ' + esc(r.reasons.join('; ')) + '.' : 'Not much to go on yet. The interrogation will sharpen this.'}</div></div>`;
+}
+
+/* =========================================================
+   9. CORE ACTIONS
+   ========================================================= */
+function toast(msg, ms=3800){
+  const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
+  $('#toasts').appendChild(el); setTimeout(() => el.remove(), ms);
+}
+function announce(msg){ const a = $('#announcer'); a.textContent = ''; setTimeout(() => a.textContent = msg, 30); }
+
+function summon(e){
+  e.preventDefault();
+  const inp = intakeInput();
+  if (!inp.text.trim()){
+    $('#fDesc').focus(); toast('Describe the monkey first. Even one sentence will do.'); return;
+  }
+  const r = classify(inp);
+  const m = blankMonkey();
+  const iq = inp.iq;
+  Object.assign(m, {
+    description:inp.text.trim(), summary:makeSummary(inp.text), name:makeName(inp.text, r.type), type:r.type,
+    broughtBy:inp.broughtBy, owner:inp.owner || iq.execWho || iq.decisionWho || (iq.execOwner === 'me' ? 'Me' : ''),
+    deadline:inp.deadline || iq.realDeadline || '', impact:inp.impact, iq, risk:r.risk, bucket:'pen'
+  });
+  m.history.push({from:'none', to:'pen', at:m.createdAt, reason:'Summoned'});
+  state.monkeys.push(m); save();
+  $('#intake').reset(); fillIQ($('#intakeIQ'), {}); $('#intakeInterro').open = false; renderForecast();
+  renderAll();
+  const card = $(`.card[data-id="${m.id}"]`);
+  if (card){ card.classList.add('landed'); card.scrollIntoView({block:'nearest', behavior:REDUCED?'auto':'smooth'}); card.focus({preventScroll:true}); }
+  toast(`🐒 ${m.name} summoned. Suggested bucket: ${BUCKETS[r.bucket].title}.`);
+  announce(`${m.name} summoned into the holding pen. Suggested bucket ${BUCKETS[r.bucket].title}.`);
+}
+
+/* Move a monkey. opts: {reason, silent, auto, noDialog} */
+function moveMonkey(id, to, opts={}){
+  const m = getM(id); if (!m || m.bucket === to) return;
+  const from = m.bucket;
+  // Leaving the pen by keyboard, menu or suggestion: the pallbearers carry it (drag-and-drop already carries itself)
+  const ghost = from === 'pen' && BUCKETS[to] && !opts.dragged && !opts.auto ? grabCard(id) : null;
+  m.bucket = to; m.bucketSince = nowISO();
+  if (!opts.auto) m.climbed = false;
+  const entry = {from, to, at:m.bucketSince, reason:opts.reason || ''};
+  m.history.push(entry);
+  refreshRisk(m); save(); renderAll();
+  const card = $(`.card[data-id="${id}"]`);
+  if (card && !ghost) card.classList.add(opts.auto ? 'climbed' : 'landed');
+  if (!opts.silent) announce(`${m.name} moved from ${PLACE_LABEL[from]} to ${PLACE_LABEL[to]}.`);
+  critterReact(id, to);
+  const after = () => {
+    if (to !== 'pen' && !opts.noDialog && getM(id)) openStep(id, from, entry);
+    else { const c = $(`.card[data-id="${id}"]`); if (c) c.focus({preventScroll:true}); }
+  };
+  if (ghost) carryCard(id, ghost, to).then(after); else after();
+}
+
+function completeMonkey(id){
+  const m = getM(id); if (!m) return;
+  const card = $(`.card[data-id="${id}"]`);
+  const rect = card ? card.getBoundingClientRect() : null;
+  m.prevBucket = m.bucket;
+  m.history.push({from:m.bucket, to:'done', at:nowISO(), reason:'Marked complete'});
+  m.status = 'done'; save();
+  if (rect) bananaBurst(rect.left + rect.width/2, rect.top + 40);
+  renderAll();
+  toast(`🍌 ${m.name} is done. Banana earned.`);
+  announce(`${m.name} marked complete and moved to the vault.`);
+}
+function archiveMonkey(id, reason){
+  const m = getM(id); if (!m) return;
+  m.prevBucket = m.bucket;
+  m.history.push({from:m.bucket, to:'archived', at:nowISO(), reason:reason || 'Archived'});
+  m.status = 'archived'; save(); renderAll();
+  toast(`📦 ${m.name} archived. Restore it from the banana vault any time.`);
+  announce(`${m.name} archived.`);
+}
+function restoreMonkey(id){
+  const m = getM(id); if (!m) return;
+  const to = m.prevBucket && (BUCKETS[m.prevBucket] || m.prevBucket === 'pen') ? m.prevBucket : 'pen';
+  m.history.push({from:m.status, to, at:nowISO(), reason:'Restored from the vault'});
+  m.status = 'active'; m.bucket = to; m.bucketSince = nowISO(); m.migratedFor = m.deadline;
+  save(); renderAll();
+  toast(`↩️ ${m.name} is back in ${PLACE_LABEL[to]}.`);
+}
+function duplicateMonkey(id){
+  const m = getM(id); if (!m) return;
+  const c = JSON.parse(JSON.stringify(m));
+  Object.assign(c, {id:uid(), seed:Math.random().toString(36).slice(2), name:limitWords('Copy of ' + m.name, 5), createdAt:nowISO(), bucketSince:nowISO(), bucket:m.bucket, status:'active', climbed:false});
+  c.history = [{from:'none', to:c.bucket, at:c.createdAt, reason:`Duplicated from ${m.name}`}];
+  state.monkeys.push(c); save(); renderAll();
+  const card = $(`.card[data-id="${c.id}"]`); if (card){ card.classList.add('landed'); card.focus(); }
+  toast(`🐒🐒 Duplicated. Each copy gets its own face.`);
+}
+async function deleteMonkey(id){
+  const m = getM(id); if (!m) return;
+  if (!await askConfirm(`Delete “${m.name}” permanently? Its notes and history go with it. Archiving keeps it restorable.`, 'Delete monkey')) return;
+  state.monkeys = state.monkeys.filter(x => x.id !== id); save(); renderAll();
+  toast(`🗑️ ${m.name} deleted.`);
+  announce(`${m.name} deleted.`);
+}
+
+/* Promise-based confirm dialog */
+function askConfirm(msg, yesLabel='Confirm'){
+  return new Promise(res => {
+    const d = $('#confirmDlg');
+    $('#confirmMsg').textContent = msg; $('#confirmYes').textContent = yesLabel;
+    d.returnValue = '';
+    const done = () => { d.removeEventListener('close', done); res(d.returnValue === 'yes'); };
+    d.addEventListener('close', done);
+    d.showModal();
+  });
+}
+</script>
+<script>
+"use strict";
+/* =========================================================
+   10. NEXT-STEP PANEL (after dropping into a bucket)
+   ========================================================= */
+const DISPO = {decline:'🙅 Declined', archive:'📦 Archive', observe:'👀 Observing', sendback:'↩️ Sent back to owner'};
+const BOUNDARIES = [
+  'Please route this to the appropriate owner and update me only if a decision is required.',
+  'This does not sit within my scope, so I will not be taking ownership.',
+  'Please provide the actual deadline, impact and required decision before escalating.',
+  'I have noted this. No action is required from me at this time.'
+];
+let stepCtx = null;
+
+function stepFields(bucket, s, m){
+  const f = (id, label, type='text', ph='') => {
+    const v = type === 'datetime-local' ? toLocalInput(s[id]) : type === 'date' ? (s[id]||'').slice(0,10) : (s[id]||'');
+    return `<div><label for="st-${id}">${label}</label><input type="${type}" id="st-${id}" data-step="${id}" value="${esc(v)}" placeholder="${esc(ph)}"></div>`;
+  };
+  switch(bucket){
+    case 'red': return `<div class="form-grid">
+      ${f('inform','Who must be informed?','text','Data protection lead, manager…')}
+      ${f('followUp','Follow-up time','datetime-local')}
+      <div class="full"><label for="st-containment">Immediate containment action</label><textarea id="st-containment" data-step="containment" rows="2" placeholder="What stops it getting worse right now?">${esc(s.containment||'')}</textarea></div>
+      <div class="full">${f('documentation','Documentation needed','text','Incident log, timeline, screenshots…').replace(/^<div>|<\/div>$/g,'')}</div></div>`;
+    case 'amber': return `<div class="form-grid">
+      ${f('owner','Owner','text', isMe(m.owner)||!m.owner ? 'Me' : m.owner)}
+      ${f('due','Due date','datetime-local')}
+      ${f('calendar','Calendar date (protected time)','date')}
+      ${f('done','Definition of done','text','What does finished look like?')}</div>`;
+    case 'blue': return `<div class="form-grid">
+      ${f('newOwner','New owner','text','Who takes it from here?')}
+      ${f('reportBack','When should they report back?','datetime-local')}
+      <div class="full"><label for="st-responsibility">What exactly are they responsible for?</label><textarea id="st-responsibility" data-step="responsibility" rows="2">${esc(s.responsibility||'')}</textarea></div>
+      <div class="full">${f('myDecision','What decision still belongs to you?','text','e.g. final sign-off on cost').replace(/^<div>|<\/div>$/g,'')}</div></div>`;
+    case 'green': return `<fieldset><legend>What happens to this monkey?</legend><div class="chips">
+      ${Object.entries({decline:'Decline', archive:'Archive', observe:'Observe only', sendback:'Send back to owner'}).map(([k,l]) =>
+        `<label class="chip-opt"><input type="radio" name="st-dispo" value="${k}" ${ (s.disposition||'decline')===k?'checked':''}><span>${l}</span></label>`).join('')}
+      </div></fieldset>
+      <div><span style="font-weight:600;font-size:.9rem">Short boundary responses</span><div class="chips" style="margin-top:6px">
+      ${BOUNDARIES.map((b,i) => `<button type="button" class="btn small ghost" data-boundary="${i}" style="text-align:left">${esc(b)}</button>`).join('')}</div></div>`;
+  }
+  return '';
+}
+function readStep(){
+  const s = {};
+  $$('#stepBody [data-step]').forEach(el => { const v = el.value.trim(); if (!v) return; s[el.dataset.step] = el.type === 'datetime-local' ? fromLocalInput(el.value) : v; });
+  const d = $('#stepBody input[name="st-dispo"]:checked'); if (d) s.disposition = d.value;
+  return s;
+}
+function genResponse(m, bucket, s){
+  const what = m.summary.replace(/\.$/,'');
+  switch(bucket){
+    case 'red': return [`Escalating now: ${what}.`, s.inform ? `I have informed ${s.inform}.` : '', s.containment ? `Immediate containment: ${s.containment.replace(/\.$/,'')}.` : '',
+      s.documentation ? `We are documenting this in ${s.documentation.replace(/\.$/,'')}.` : 'I am documenting what happened and when.', `I will follow up by ${s.followUp ? fmtDate(s.followUp) : 'the end of today'}.`].filter(Boolean).join(' ');
+    case 'amber': {
+      const when = s.calendar ? fmtDate(s.calendar + 'T09:00', false) : s.due ? fmtDate(s.due, false) : 'Monday';
+      return [`I can review this on ${when}. Nothing described requires same-day action.`, s.owner && !isMe(s.owner) ? `${s.owner} owns it${s.due ? ' and it is due ' + fmtDate(s.due) : ''}.` : (s.due ? `It is due ${fmtDate(s.due)}.` : ''), s.done ? `It is done when ${s.done.replace(/\.$/,'')}.` : ''].filter(Boolean).join(' ');
+    }
+    case 'blue':
+      if (!s.newOwner) return 'Please route this to the appropriate owner and update me only if a decision is required.';
+      return [`${s.newOwner}, please take this one: ${s.responsibility ? s.responsibility.replace(/\.$/,'') : what}.`, s.reportBack ? `Please report back by ${fmtDate(s.reportBack)}.` : 'Please tell me when it is done.',
+        s.myDecision ? `The decision on ${s.myDecision.replace(/\.$/,'')} stays with me.` : 'Update me only if a decision is required.'].join(' ');
+    case 'green': {
+      const d = s.disposition || 'decline';
+      if (d === 'decline') return BOUNDARIES[1];
+      if (d === 'archive' || d === 'observe') return d === 'observe' ? 'I have noted this and will keep an eye on it. No action is required from me at this time.' : BOUNDARIES[3];
+      if (m.type === 'noise' || m.iq?.evidence === 'claimed') return BOUNDARIES[2];
+      return `This sits with ${m.owner && !isMe(m.owner) ? m.owner : 'its original owner'}, so I am passing it back. Please update me only if a decision is required.`;
+    }
+  }
+  return '';
+}
+function openStep(id, from, entry){
+  const m = getM(id); if (!m) return;
+  const bucket = m.bucket, b = BUCKETS[bucket]; if (!b) return;
+  const s = (m.step && m.step.bucket === bucket) ? Object.assign({}, m.step) : {bucket};
+  stepCtx = {id, entry, dirty:!!(m.step && m.step.bucket === bucket && m.response)};
+  $('#stepAva').innerHTML = avatarSVG(m);
+  $('#stepH').innerHTML = `${b.icon} ${esc(m.name)}: ${esc(b.title)}`;
+  $('#stepBody').innerHTML = `
+    <p style="margin:0"><span class="bucket-tag ${bucket}">${b.icon} ${b.title}</span> <b>${esc(b.action)}.</b></p>
+    ${(() => { const sg = classifyMonkey(m).bucket; return sg !== bucket ? `<p class="hint" style="margin:0">🔮 For what it’s worth, the interrogation points to <b>${BUCKETS[sg].title}</b>. Your call wins.</p>` : ''; })()}
+    ${stepFields(bucket, s, m)}
+    ${from && from !== 'pen' && from !== 'none' ? `<div><label for="st-reason">Why did it move from ${esc(PLACE_LABEL[from])}? <span class="hint">(optional, saved in history)</span></label><input type="text" id="st-reason" value="${esc(entry && entry.reason || '')}"></div>` : ''}
+    <div class="resp-box">
+      <label for="st-response">Recommended response <span class="hint">(edit freely)</span></label>
+      <textarea id="st-response">${esc(stepCtx.dirty ? m.response : genResponse(m, bucket, s))}</textarea>
+      <div class="resp-tools">
+        <button type="button" class="btn small" id="st-copy">📋 Copy</button>
+        <button type="button" class="btn small ghost" id="st-regen">↻ Regenerate from fields</button>
+      </div>
+    </div>`;
+  const body = $('#stepBody');
+  body.oninput = e => {
+    if (e.target.id === 'st-response'){ stepCtx.dirty = true; return; }
+    if (e.target.id === 'st-reason') return;
+    if (!stepCtx.dirty) $('#st-response').value = genResponse(m, bucket, readStep());
+  };
+  body.onchange = body.oninput;
+  body.onclick = e => {
+    const bd = e.target.closest('[data-boundary]');
+    if (bd){ $('#st-response').value = BOUNDARIES[+bd.dataset.boundary]; stepCtx.dirty = true; }
+    if (e.target.id === 'st-regen'){ stepCtx.dirty = false; $('#st-response').value = genResponse(m, bucket, readStep()); }
+    if (e.target.id === 'st-copy') copyText($('#st-response'));
+  };
+  const d = $('#stepDlg'); d.returnValue = ''; d.showModal();
+  const first = body.querySelector('input,textarea'); if (first) first.focus();
+}
+function closeStep(){
+  const d = $('#stepDlg'), ctx = stepCtx; if (!ctx) return;
+  const m = getM(ctx.id); stepCtx = null;
+  if (!m) return;
+  const reasonEl = $('#st-reason');
+  if (reasonEl && ctx.entry){ ctx.entry.reason = reasonEl.value.trim(); }
+  if (d.returnValue === 'save'){
+    const s = readStep(); s.bucket = m.bucket; s.savedAt = nowISO();
+    m.step = s; m.response = $('#st-response').value.trim();
+    if (m.bucket === 'amber'){ if (s.owner) m.owner = s.owner; if (s.due) m.deadline = s.due; }
+    if (m.bucket === 'blue'){ if (s.newOwner) m.owner = s.newOwner; if (s.reportBack && !m.deadline) m.deadline = s.reportBack; }
+    if (m.bucket === 'red' && !m.owner) m.owner = 'Me';
+    refreshRisk(m); save();
+    if (m.bucket === 'green' && s.disposition === 'archive'){ archiveMonkey(m.id, 'Not my monkey: archived'); return; }
+    toast(`✅ Next step saved for ${m.name}.`);
+  } else save();
+  renderAll();
+  const card = $(`.card[data-id="${m.id}"]`); if (card) card.focus({preventScroll:true});
+}
+async function copyText(el){
+  try { await navigator.clipboard.writeText(el.value); toast('📋 Copied to clipboard.'); }
+  catch { el.select(); try { document.execCommand('copy'); toast('📋 Copied to clipboard.'); } catch { toast('Select the text and copy it manually.'); } }
+}
+
+/* =========================================================
+   11. EDIT DIALOG (details, interrogation, notes, history)
+   ========================================================= */
+let editId = null;
+function fillTypeSelect(sel, current){
+  sel.innerHTML = Object.entries(allTypes()).map(([k,t]) => `<option value="${k}" ${k===current?'selected':''}>${t.emoji} ${esc(t.name)}</option>`).join('');
+}
+function openEdit(id, section){
+  const m = getM(id); if (!m) return;
+  editId = id;
+  $('#editAva').innerHTML = avatarSVG(m);
+  $('#editH').textContent = m.name;
+  $('#eName').value = m.name; fillTypeSelect($('#eType'), m.type);
+  $('#eSummary').value = m.summary; $('#eDesc').value = m.description; $('#eBrought').value = m.broughtBy;
+  $('#eOwner').value = m.owner; $('#eDeadline').value = toLocalInput(m.deadline); $('#eImpact').value = String(m.impact);
+  fillIQ($('#editIQ'), m.iq); $('#editInterro').open = section === 'iq';
+  renderEditLists(m); editForecast();
+  const ro = m.status !== 'active';
+  $('#eSave').textContent = ro ? 'Save changes' : 'Save monkey';
+  const d = $('#editDlg'); d.returnValue = ''; d.showModal();
+  if (section === 'notes'){ $('#eNoteNew').focus(); $('#notesH').scrollIntoView({block:'start'}); }
+  else if (section === 'history'){ $('#histH').scrollIntoView({block:'start'}); $('#eName').focus({preventScroll:true}); }
+  else $('#eName').focus();
+}
+function renderEditLists(m){
+  $('#eNotes').innerHTML = m.notes.length ? m.notes.map((n,i) => `<li><span>${esc(n.text)}<time>${esc(fmtDate(n.at))}</time></span><button type="button" class="btn small ghost" data-del-note="${i}" aria-label="Delete note">✕</button></li>`).join('') : '<li><span class="hint">No notes yet.</span></li>';
+  $('#eHist').innerHTML = m.history.slice().reverse().map(h => `<li><span><b>${esc(PLACE_LABEL[h.from]||h.from)}</b> to <b>${esc(PLACE_LABEL[h.to]||h.to)}</b>${h.reason ? `: ${esc(h.reason)}` : ''}<time>${esc(fmtDate(h.at))}</time></span></li>`).join('');
+}
+function editInput(){
+  return {text:$('#eDesc').value || $('#eSummary').value, impact:Number($('#eImpact').value), deadline:fromLocalInput($('#eDeadline').value), owner:$('#eOwner').value.trim(), iq:readIQ($('#editIQ'))};
+}
+function editForecast(){
+  const r = classify(editInput()), t = allTypes()[r.type], b = BUCKETS[r.bucket];
+  $('#editForecast').innerHTML = `<span aria-hidden="true">🔮</span><span>Suggestion: <strong>${t.emoji} ${esc(t.name)}</strong> in <span class="bucket-tag ${r.bucket}">${b.icon} ${b.title}</span>. ${r.reasons.length ? '<span class="hint">Why: ' + esc(r.reasons.join('; ')) + '.</span>' : ''}</span>`;
+}
+function saveEdit(){
+  const m = getM(editId); if (!m) return;
+  const oldDeadline = m.deadline;
+  m.name = limitWords($('#eName').value, 5) || m.name;
+  m.type = $('#eType').value; m.summary = $('#eSummary').value.trim() || m.summary;
+  m.description = $('#eDesc').value.trim(); m.broughtBy = $('#eBrought').value.trim();
+  m.owner = $('#eOwner').value.trim(); m.deadline = fromLocalInput($('#eDeadline').value);
+  m.impact = Number($('#eImpact').value); m.iq = readIQ($('#editIQ'));
+  if (m.deadline !== oldDeadline) m.climbed = false;
+  refreshRisk(m); save(); renderAll();
+  toast(`✎ ${m.name} updated.`);
+  if (m.status === 'active'){ const c = $(`.card[data-id="${m.id}"]`); if (c) c.focus({preventScroll:true}); }
+}
+
+/* =========================================================
+   12. MORE MENU
+   ========================================================= */
+let menuFor = null, menuBtn = null;
+function openMenu(btn, id){
+  const m = getM(id), menu = $('#moreMenu');
+  menuFor = id; menuBtn = btn;
+  menu.innerHTML = `
+    <button role="menuitem" data-mact="duplicate">⧉ Duplicate</button>
+    <button role="menuitem" data-mact="notes">📝 Add a note</button>
+    <button role="menuitem" data-mact="history">🕘 Movement history</button>
+    <button role="menuitem" data-mact="interrogate">🔦 Interrogate</button>
+    <button role="menuitem" data-mact="step">➡️ Next step panel</button>
+    <button role="menuitem" data-mact="archive">📦 Archive</button>
+    <button role="menuitem" data-mact="delete" class="danger">🗑️ Delete…</button>`;
+  if (m.bucket === 'pen') menu.querySelector('[data-mact=step]').remove();
+  menu.hidden = false;
+  const r = btn.getBoundingClientRect(), mw = menu.offsetWidth, mh = menu.offsetHeight;
+  menu.style.left = clamp(r.right - mw, 8, innerWidth - mw - 8) + 'px';
+  menu.style.top = (r.bottom + mh + 8 > innerHeight ? Math.max(8, r.top - mh - 6) : r.bottom + 6) + 'px';
+  btn.setAttribute('aria-expanded', 'true');
+  menu.querySelector('button').focus();
+}
+function closeMenu(refocus=true){
+  const menu = $('#moreMenu'); if (menu.hidden) return;
+  menu.hidden = true;
+  if (menuBtn){ menuBtn.setAttribute('aria-expanded','false'); if (refocus && document.contains(menuBtn)) menuBtn.focus(); }
+  menuFor = null; menuBtn = null;
+}
+$('#moreMenu').addEventListener('click', e => {
+  const b = e.target.closest('[data-mact]'); if (!b) return;
+  const id = menuFor, act = b.dataset.mact; closeMenu(false);
+  const m = getM(id); if (!m) return;
+  if (act === 'duplicate') duplicateMonkey(id);
+  if (act === 'notes') openEdit(id, 'notes');
+  if (act === 'history') openEdit(id, 'history');
+  if (act === 'interrogate') openEdit(id, 'iq');
+  if (act === 'step') openStep(id, null, null);
+  if (act === 'archive') archiveMonkey(id);
+  if (act === 'delete') deleteMonkey(id);
+});
+$('#moreMenu').addEventListener('keydown', e => {
+  const items = $$('#moreMenu button'), i = items.indexOf(document.activeElement);
+  if (e.key === 'ArrowDown'){ e.preventDefault(); items[(i+1) % items.length].focus(); }
+  if (e.key === 'ArrowUp'){ e.preventDefault(); items[(i-1+items.length) % items.length].focus(); }
+  if (e.key === 'Home'){ e.preventDefault(); items[0].focus(); }
+  if (e.key === 'End'){ e.preventDefault(); items[items.length-1].focus(); }
+  if (e.key === 'Escape' || e.key === 'Tab'){ e.preventDefault(); closeMenu(); }
+});
+document.addEventListener('pointerdown', e => { if (!e.target.closest('#moreMenu') && !e.target.closest('[data-act=more]')) closeMenu(false); });
+addEventListener('scroll', () => closeMenu(false), {passive:true});
+
+/* =========================================================
+   13. CARD EVENTS (click, select, keyboard)
+   ========================================================= */
+let suppressClick = false;
+document.addEventListener('click', e => {
+  const card = e.target.closest('.card'); if (!card) return;
+  if (suppressClick){ suppressClick = false; e.preventDefault(); return; }
+  const id = card.dataset.id, actEl = e.target.closest('[data-act]');
+  if (actEl){
+    const act = actEl.dataset.act;
+    if (act === 'edit') openEdit(id);
+    else if (act === 'done') completeMonkey(id);
+    else if (act === 'send') moveMonkey(id, actEl.dataset.to, {reason:'Followed the suggestion'});
+    else if (act === 'more'){ if (menuFor === id) closeMenu(); else openMenu(actEl, id); }
+    return;
+  }
+  if (e.target.closest('select,button,input,textarea,a')) return;
+  openEdit(id); // click anywhere else on the card to edit
+});
+document.addEventListener('change', e => {
+  if (e.target.matches('select[data-act=move]')){
+    const card = e.target.closest('.card'); const v = e.target.value;
+    if (card && v) moveMonkey(card.dataset.id, v);
+  }
+});
+document.addEventListener('keydown', e => {
+  const card = e.target.closest && e.target.closest('.card');
+  if (!card || e.target !== card || e.metaKey || e.ctrlKey || e.altKey) return;
+  const id = card.dataset.id, map = {'1':'red','2':'amber','3':'blue','4':'green','0':'pen'};
+  if (map[e.key]){ e.preventDefault(); moveMonkey(id, map[e.key], {reason:'Moved with the keyboard'}); }
+  else if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openEdit(id); }
+  else if (e.key.toLowerCase() === 'd'){ e.preventDefault(); completeMonkey(id); }
+  else if (e.key === 'Delete' || e.key === 'Backspace'){ e.preventDefault(); deleteMonkey(id); }
+  else if (['ArrowDown','ArrowUp','ArrowLeft','ArrowRight'].includes(e.key)){
+    const cards = $$('.card'); const i = cards.indexOf(card);
+    const n = cards[i + (e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1)];
+    if (n){ e.preventDefault(); n.focus(); }
+  }
+});
+
+/* =========================================================
+   14. DRAG AND DROP (pointer events: mouse, pen, touch)
+   ========================================================= */
+let drag = null;
+document.addEventListener('pointerdown', e => {
+  const card = e.target.closest('.card');
+  if (!card || e.button !== 0) return;
+  if (e.target.closest('button,select,input,textarea,a,label')) return;
+  // Touch drags start from the avatar strip so the page can still scroll
+  if (e.pointerType !== 'mouse' && !e.target.closest('.drag-handle')) return;
+  drag = {id:card.dataset.id, card, x0:e.clientX, y0:e.clientY, x:e.clientX, y:e.clientY, started:false, pid:e.pointerId, zone:null, raf:0};
+});
+
+function startDrag(){
+  const {card} = drag, r = card.getBoundingClientRect();
+  drag.dx = drag.x0 - r.left; drag.dy = drag.y0 - r.top;
+  const g = card.cloneNode(true);
+  g.classList.add('drag-ghost'); g.removeAttribute('tabindex'); g.removeAttribute('id'); g.setAttribute('aria-hidden','true');
+  g.style.width = r.width + 'px';
+  document.body.appendChild(g);
+  drag.ghost = g; drag.started = true;
+  card.classList.add('is-dragging');
+  document.body.style.cursor = 'grabbing';
+  closeMenu(false);
+  drag.raf = requestAnimationFrame(dragLoop);
+}
+function dragLoop(){
+  if (!drag || !drag.started) return;
+  const {ghost, x, y, dx, dy} = drag;
+  const tilt = REDUCED ? 0 : clamp((x - (drag.lastX ?? x)) * .6, -8, 8);
+  drag.lastX = x;
+  ghost.style.transform = `translate(${x - dx}px, ${y - dy}px) rotate(${tilt}deg) scale(1.03)`;
+  // hit-test drop zones
+  const el = document.elementFromPoint(x, y);
+  const zone = el && el.closest('[data-drop]');
+  const key = zone ? zone.dataset.drop : null;
+  if (key !== drag.zone){
+    $$('.drop-hot').forEach(z => z.classList.remove('drop-hot'));
+    if (key){ (key === 'pen' ? $('#list-pen') : $(`.q[data-drop="${key}"]`)).classList.add('drop-hot'); }
+    drag.zone = key;
+  }
+  // auto-scroll near the viewport edges
+  const edge = 70;
+  if (y < edge) scrollBy(0, -Math.ceil((edge - y) / 5));
+  else if (y > innerHeight - edge) scrollBy(0, Math.ceil((y - innerHeight + edge) / 5));
+  drag.raf = requestAnimationFrame(dragLoop);
+}
+document.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.pid) return;
+  drag.x = e.clientX; drag.y = e.clientY;
+  if (!drag.started && Math.hypot(drag.x - drag.x0, drag.y - drag.y0) > 6) startDrag();
+  if (drag.started) e.preventDefault();
+}, {passive:false});
+function endDrag(commit){
+  if (!drag) return;
+  const d = drag; drag = null;
+  cancelAnimationFrame(d.raf);
+  document.body.style.cursor = '';
+  if (!d.started) return;
+  suppressClick = true; setTimeout(() => suppressClick = false, 50);
+  $$('.drop-hot').forEach(z => z.classList.remove('drop-hot'));
+  d.card.classList.remove('is-dragging');
+  const m = getM(d.id);
+  const target = commit ? d.zone : null;
+  if (target && m && target !== m.bucket){
+    d.ghost.remove();
+    moveMonkey(d.id, target, {reason:'', dragged:true});
+  } else if (!REDUCED && d.ghost.animate){
+    const r = d.card.getBoundingClientRect();
+    d.ghost.animate([{transform:d.ghost.style.transform}, {transform:`translate(${r.left}px, ${r.top}px)`}], {duration:220, easing:'ease-out'}).onfinish = () => d.ghost.remove();
+  } else d.ghost.remove();
+}
+document.addEventListener('pointerup', e => { if (drag && e.pointerId === drag.pid) endDrag(true); });
+document.addEventListener('pointercancel', e => { if (drag && e.pointerId === drag.pid) endDrag(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && drag && drag.started) endDrag(false); });
+// Stop iOS from starting a native drag/scroll on the handle
+document.addEventListener('touchmove', e => { if (drag && drag.started) e.preventDefault(); }, {passive:false});
+document.addEventListener('dragstart', e => { if (e.target.closest && e.target.closest('.card')) e.preventDefault(); });
+
+/* =========================================================
+   15. FOCUS MODE: "What actually needs me today?"
+   ========================================================= */
+let focusMode = false;
+function myDecision(m){
+  const iq = m.iq || {};
+  if (iq.decisionOwner === 'me' || iq.need === 'decision') return true;
+  if (iq.decisionOwner === 'other' || iq.need === 'neither') return false;
+  if (isMe(m.owner)) return true;
+  return !m.owner && (m.bucket === 'red' || m.bucket === 'amber' || m.bucket === 'pen');
+}
+function focusPicks(){
+  return active().filter(m => m.bucket !== 'green' && (myDecision(m) || m.bucket === 'red'))
+    .map(m => {
+      const h = hoursUntil(m.deadline); let s = 0; const why = [];
+      if (m.bucket === 'red'){ s += 100; why.push('it sits in Escalate Now'); }
+      if (h <= 0){ s += 50; why.push(`its deadline passed ${dur(h*3600000)} ago`); }
+      else if (h <= 24){ s += 30; why.push(`it is due ${relDeadline(m.deadline)}`); }
+      else if (h <= 72){ s += 10; why.push(`it is due ${relDeadline(m.deadline)}`); }
+      s += m.impact * 10 + m.risk * 6;
+      const im = Object.keys((m.iq && m.iq.impacts) || {});
+      if (im.length) why.push(`${im.join(', ')} impact`);
+      else if (m.impact >= 3) why.push(IMPACT_LABEL[m.impact].toLowerCase());
+      if (myDecision(m)) why.push('the decision is yours');
+      if (!m.owner) why.push('nobody owns it yet');
+      if (m.bucket === 'pen'){ s -= 5; why.push('it has not been sorted yet'); }
+      if (m.bucket === 'blue'){ s -= 20; }
+      return {m, s, why};
+    }).sort((a,b) => b.s - a.s).slice(0, 3);
+}
+function applyFocus(){
+  const picks = focusPicks(), ids = picks.map(p => p.m.id);
+  const flagsFor = m => isOverdue(m) ? `<span class="flag over">⏰ Overdue</span>` : (m.deadline && hoursUntil(m.deadline) <= 24 ? `<span class="flag soon">⏳ Due ${relDeadline(m.deadline)}</span>` : '');
+  $$('.card').forEach(c => { c.classList.remove('spot'); const r = c.querySelector('.rank'); if (r) r.remove(); });
+  picks.forEach((p, i) => {
+    const c = $(`.card[data-id="${p.m.id}"]`); if (!c) return;
+    c.classList.add('spot'); c.insertAdjacentHTML('afterbegin', `<span class="rank" aria-label="Priority ${i+1}">${i+1}</span>`);
+  });
+  const rest = active().length - picks.length;
+  $('#focusList').innerHTML = picks.length ? `<ol class="fp-list">${picks.map((p, i) => `
+      <li><button type="button" class="fp-item" data-goto="${p.m.id}" aria-label="Priority ${i+1}: ${esc(p.m.name)}. ${esc(p.m.summary)} Why: ${esc(p.why.join('; '))}. Go to card.">
+        <span class="fp-rank" aria-hidden="true">${i+1}</span>
+        <span class="ava" aria-hidden="true">${avatarSVG(p.m)}</span>
+        <span class="fp-text"><b>${esc(p.m.name)}</b><span class="fp-sum">${esc(p.m.summary)}</span>
+          ${flagsFor(p.m) ? `<span class="flags">${flagsFor(p.m)}</span>` : ''}
+          <span class="why">Why: ${esc(p.why.join('; '))}.</span></span>
+      </button></li>`).join('')}</ol>
+    <p class="fp-foot">${rest > 0 ? `${numberWord(rest)} other ${rest === 1 ? 'monkey' : 'monkeys'} can wait, or ${rest === 1 ? 'belongs' : 'belong'} to someone else.` : 'That is the whole board. Nothing else is waiting.'}</p>`
+    : `<p class="fp-empty">Nothing on the board needs your decision today. Go eat a banana. 🍌</p>`;
+  $('#focusBtn').hidden = !picks.length;
+  return ids;
+}
+function toggleFocus(){
+  focusMode = !focusMode;
+  const b = $('#focusBtn');
+  b.setAttribute('aria-pressed', focusMode);
+  b.textContent = focusMode ? 'Show the whole board' : 'Dim everything else';
+  document.body.classList.toggle('focus-on', focusMode);
+  announce(focusMode ? 'Everything except your top priorities is dimmed.' : 'Showing the whole board.');
+}
+function gotoCard(id){
+  const c = $(`.card[data-id="${id}"]`); if (!c) return;
+  c.scrollIntoView({block:'center', behavior:REDUCED ? 'auto' : 'smooth'});
+  c.classList.remove('landed'); void c.offsetWidth; c.classList.add('landed');
+  c.focus({preventScroll:true});
+}
+
+/* =========================================================
+   16. DEADLINE MIGRATION: less urgent monkeys climb to Escalate Now
+   ========================================================= */
+function checkMigrations(){
+  if (!state.settings.autoEscalate) return;
+  const from = ['pen','amber','blue'].concat(state.settings.autoEscalateGreen ? ['green'] : []);
+  const climbers = active().filter(m => from.includes(m.bucket) && m.deadline && new Date(m.deadline) <= new Date() && m.migratedFor !== m.deadline);
+  if (!climbers.length) return;
+  climbers.forEach(m => {
+    m.migratedFor = m.deadline; m.climbed = true;
+    m.history.push({from:m.bucket, to:'red', at:nowISO(), reason:'Deadline reached: climbed into Escalate Now automatically'});
+    m.bucket = 'red'; m.bucketSince = nowISO(); refreshRisk(m);
+  });
+  save(); renderAll();
+  climbers.forEach(m => { const c = $(`.card[data-id="${m.id}"]`); if (c) c.classList.add('climbed'); critterReact(m.id, 'red'); });
+  const names = climbers.map(m => m.name).join(', ');
+  toast(`🧗 ${names} climbed into Escalate Now. ${climbers.length === 1 ? 'Its' : 'Their'} deadline arrived.`, 6000);
+  announce(`${names} moved to Escalate Now because the deadline was reached.`);
+}
+function tick(){
+  $$('[data-since]').forEach(el => el.textContent = dur(Date.now() - new Date(el.dataset.since)));
+  checkMigrations();
+}
+
+/* =========================================================
+   17. MONKEY BUSINESS: walking critters, one pop-up palm tree, fruit throwing
+   Critter state machine:
+   walk -> hop (leap to the palm) -> climb -> top (pick + throw) -> down -> hop (back to the ground) -> walk
+   ========================================================= */
+const critters = new Map(); // id -> critter state
+let critterRaf = 0, lastT = 0, nextChatter = 0;
+const CORPORATE = [
+  'Let’s unpack that.','Put a pin in it.','Low-hanging fruit.','Building the plane while flying it.','Let’s circle back.',
+  'Let’s take this offline.','Will this move the needle?','Synergy!','Let’s not boil the ocean.','Let’s double-click on that.',
+  'Do we have the bandwidth?','Quick touch base?','Per my last email…','Can we do a quick sync?','Let’s park that.',
+  'Think outside the box.','This is a paradigm shift.','Run it up the flagpole.','Let’s peel the onion.','Holistic approach.',
+  'Time for a deep dive.','Leverage the learnings.','Get our ducks in a row.','Win-win.','Mission critical.','Going forward…',
+  'Let’s get aligned.','Action item!','Core competency.','Let’s bake it in.','Pivot!','Stay in your swim lane.',
+  'Blue-sky thinking.','What’s the value-add?','Hard stop at 3.','Can everyone see my screen?','You’re on mute.',
+  'Parking lot it.','Let’s get granular.','Net-net…','Spin up a tiger team.','Boots on the ground.',
+  'Ping me.','Let’s level-set.','Move fast and fix later.','Let’s socialise this.','Open door policy!',
+  'It’s on my radar.','We should operationalise that.','Let’s table it.','Circle the wagons.','Thought leadership!'
+];
+const TYPE_LINES = {
+  compliance:['Document everything.','Tell the DPO!'], fire:['It is actually on fire!','Contain first!'], revenue:['Show me the money.'],
+  customer:['The customer is waiting.'], people:['Check on the team.'], delegation:['Give me to someone else.'], monday:['See you Monday.'],
+  noise:['Did you hear…?','Big if true.'], notmine:['Not my monkey.'], exiled:['Can I come back in?'], zombie:['Braaains… I mean tickets.'], banana:['Cake in the kitchen!']
+};
+const CLIMB_LINES = ['Low-hanging fruit!','Harvesting synergies.','Quick win incoming!','Delivering value!','Cascading this down.','Tough nut to crack!','Incoming deliverable!','Coconut-driven development!'];
+const FRUIT = {banana:['🍌','#F2C94C'], coconut:['🥥','#F3EBDD'], cucumber:['🥒','#7DBA5A'], grape:['🍇','#8E5BB8']};
+const crittersOn = () => state.settings.critters && !REDUCED;
+const anyOf = arr => arr[Math.floor(Math.random() * arr.length)];
+const groundY = () => $('#critters').getBoundingClientRect().bottom - 4;
+
+/* ---------- The palm tree: one at a time, pops up every 2 minutes ---------- */
+let tree = null;
+const TREE_EVERY = 120000, TREE_FIRST = 20000, TREE_LIFE = 60000;
+function treeSVG(tr){
+  // viewBox 0 0 160 200; trunk from (80,200) up to (topX, 52)
+  const tx = tr.topX, ty = 52, cx = 80 + tr.lean * .2, cy = 120;
+  const trunk = `M80 200 Q${cx} ${cy} ${tx} ${ty}`;
+  const r = rng(tr.seed);
+  const greens = ['#3E8E4E','#2F6B45','#58A75F','#46985A'];
+  let fronds = '';
+  [-170,-140,-110,-75,-40,-10,20].map(a => a + (r()-.5)*14).forEach((a, i) => {
+    const rad = a * Math.PI / 180, len = 50 + r()*20;
+    const ex = tx + Math.cos(rad) * len, ey = ty + Math.sin(rad) * len * .7 + 16;
+    const nx = -Math.sin(rad) * 9, ny = Math.cos(rad) * 9;
+    const mx = (tx + ex) / 2, my = (ty + ey) / 2 - 14;
+    fronds += `<path d="M${tx} ${ty} Q${mx + nx} ${my + ny} ${ex} ${ey} Q${mx - nx} ${my - ny + 6} ${tx} ${ty}z" fill="${greens[i % greens.length]}" stroke="#1E4A2C" stroke-width="1.4"/>`;
+  });
+  const fruits = tr.fruits.map((f, i) => {
+    const fx = tx + f.dx, fy = ty + 10 + f.dy;
+    const shape = tr.kind === 'coconut'
+      ? `<circle cx="${fx}" cy="${fy}" r="7" fill="#7A4A22" stroke="#3E2410" stroke-width="1.4"/><circle cx="${fx-2}" cy="${fy-2}" r="1.6" fill="#3E2410"/>`
+      : `<path d="M${fx-3} ${fy-6} q-3 9 3 14 M${fx+1} ${fy-6} q-1 9 5 13 M${fx+5} ${fy-6} q1 8 7 11" stroke="#F2C94C" stroke-width="4.5" fill="none" stroke-linecap="round"/><path d="M${fx-3} ${fy-8}h9" stroke="#6B8E23" stroke-width="3" stroke-linecap="round"/>`;
+    return `<g class="palm-fruit" data-i="${i}">${shape}</g>`;
+  }).join('');
+  return `<svg viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="80" cy="198" rx="34" ry="5" fill="rgba(90,60,20,.2)"/>
+    <path d="${trunk}" stroke="#8B6238" stroke-width="13" fill="none" stroke-linecap="round"/>
+    <path d="${trunk}" stroke="#664423" stroke-width="13" fill="none" stroke-dasharray="2.5 8"/>
+    ${fronds}${fruits}</svg>`;
+}
+function spawnTree(){
+  if (!crittersOn() || tree || document.hidden || !critters.size) return;
+  const H = innerWidth < 600 ? 118 : 150, W = H * .8;
+  const left = 20 + Math.random() * Math.max(0, innerWidth - W - 40);
+  const minBase = Math.max(H + 90, innerHeight * .4), maxBase = groundY() - 30;
+  const baseY = minBase + Math.random() * Math.max(0, maxBase - minBase);
+  const lean = (Math.random() - .5) * 40;
+  const kind = 'coconut'; // it is always a coconut palm
+  const count = 3 + Math.floor(Math.random() * 3);
+  const fruits = Array.from({length:count}, (_, k) => ({dx:(k - (count - 1) / 2) * 7 + (Math.random() - .5) * 3, dy:Math.abs(k - (count - 1) / 2) * -2 + Math.random() * 3, picked:false}));
+  const tr = {W, H, lean, topX:80 + lean, kind, fruits, seed:hash(String(Math.random())), baseY, born:performance.now()};
+  const el = document.createElement('div');
+  el.className = 'palm'; el.setAttribute('aria-hidden', 'true');
+  Object.assign(el.style, {left:left + 'px', top:(baseY - H) + 'px', width:W + 'px', height:H + 'px'});
+  el.innerHTML = treeSVG(tr);
+  document.body.appendChild(el);
+  el.animate([{transform:'scale(0,0)'}, {transform:'scale(1.08,1.12)', offset:.7}, {transform:'scale(1)'}], {duration:700, easing:'cubic-bezier(.3,1.4,.5,1)'});
+  tr.el = el;
+  tr.baseX = left + W * .5;
+  tr.topPx = left + W * (tr.topX / 160);
+  tr.climbH = H * (148 / 200) - 34;
+  tree = tr;
+  // up to two monkeys race for the fruit
+  const walkers = [...critters.values()].filter(c => c.mode === 'walk').sort(() => Math.random() - .5).slice(0, 2);
+  walkers.forEach((c, i) => setTimeout(() => {
+    if (tree === tr && c.mode === 'walk'){ if (i === 0) sayText(c, 'Ooh, low-hanging fruit!'); sendToTree(c, i); }
+  }, 600 + i * 1400));
+}
+function removeTree(){
+  if (!tree) return;
+  const el = tree.el; tree = null;
+  if (el.animate) el.animate([{transform:'scale(1)', opacity:1}, {transform:'scale(.2,0)', opacity:0}], {duration:450, easing:'ease-in'}).onfinish = () => el.remove();
+  else el.remove();
+}
+function clearTreeNow(){
+  if (tree){ tree.el.remove(); tree = null; }
+  critters.forEach(c => { if (c.mode !== 'walk'){ c.mode = 'walk'; c.y = 0; c.tree = null; } });
+}
+const ripe = tr => tr.fruits.filter(f => !f.picked).length;
+function pickFruit(tr){
+  const i = tr.fruits.findIndex(f => !f.picked);
+  if (i < 0) return null;
+  tr.fruits[i].picked = true;
+  const g = tr.el.querySelector(`.palm-fruit[data-i="${i}"]`); if (g) g.classList.add('picked');
+  return tr.kind;
+}
+function climbersOn(tr){ let n = 0; critters.forEach(c => { if (c.tree === tr) n++; }); return n; }
+function sendToTree(c, slot){
+  if (!tree || !ripe(tree) || c.mode !== 'walk' || climbersOn(tree) >= 2) return false;
+  const cw = c.el.offsetWidth || 62;
+  c.tree = tree; c.offset = slot ? 14 : 0;
+  startHop(c, tree.baseX - cw / 2 + c.offset, tree.baseY - groundY(), 'tree');
+  return true;
+}
+function startHop(c, x1, y1, to){
+  const dist = Math.hypot(x1 - c.x, y1 - c.y);
+  Object.assign(c, {mode:'hop', hx0:c.x, hy0:c.y, hx1:x1, hy1:y1, hopTo:to, prog:0, hopDur:clamp(dist / 650, .55, 1.25), arc:clamp(dist * .35, 60, 180)});
+  c.vx = x1 >= c.x ? Math.abs(c.vx) || 40 : -(Math.abs(c.vx) || 40);
+}
+
+/* ---------- Critters ---------- */
+function syncCritters(){
+  const layer = $('#critters');
+  $('#critterBtn').setAttribute('aria-pressed', !!state.settings.critters);
+  if (!crittersOn()){
+    clearTreeNow();
+    critters.forEach(c => c.el.remove()); critters.clear(); cancelAnimationFrame(critterRaf); critterRaf = 0;
+    layer.hidden = true; return;
+  }
+  layer.hidden = false;
+  const wanted = active().slice().sort((a,b) => b.risk - a.risk).slice(0, innerWidth < 600 ? 4 : 7);
+  const ids = new Set(wanted.map(m => m.id));
+  critters.forEach((c, id) => { if (!ids.has(id)){ c.el.remove(); critters.delete(id); } });
+  wanted.forEach(m => {
+    let c = critters.get(m.id);
+    const sig = m.type + m.seed;
+    if (!c){
+      const el = document.createElement('button');
+      el.className = 'critter walking'; el.type = 'button'; el.tabIndex = -1; el.dataset.id = m.id;
+      el.innerHTML = `<div class="flip"><div class="body"></div></div>`;
+      layer.appendChild(el);
+      c = {el, id:m.id, x:Math.random() * (innerWidth - 70), y:0, vx:(Math.random() < .5 ? -1 : 1) * (25 + Math.random()*30), pauseUntil:0,
+           nextThrow:performance.now() + 6000 + Math.random()*14000, sig:'', mode:'walk', tree:null, prog:0};
+      el.addEventListener('click', () => {
+        say(c, m.id);
+        if (c.mode === 'top' && c.tree){ if (pickFruit(c.tree)){ c.thrown++; throwFruit(c, m.id, 'coconut'); } return; }
+        if (c.mode === 'walk' && !sendToTree(c, climbersOn(tree || {}) )) throwFruit(c, m.id);
+      });
+      critters.set(m.id, c);
+    }
+    if (c.sig !== sig){ c.el.querySelector('.body').innerHTML = critterSVG(m); c.sig = sig; }
+    c.el.title = m.name;
+  });
+  if (!critterRaf){ lastT = performance.now(); nextChatter = lastT + 8000; critterRaf = requestAnimationFrame(critterLoop); }
+}
+function nextThrowDelay(id){
+  const mode = state.settings.throwing, m = getM(id), hot = m && m.bucket === 'red' ? .5 : 1;
+  return (mode === 'chaotic' ? 5000 + Math.random()*9000 : 26000 + Math.random()*36000) * hot;
+}
+function critterLoop(t){
+  const dt = Math.min(.05, (t - lastT) / 1000); lastT = t;
+  const mode = state.settings.throwing;
+  const busy = !!document.querySelector('dialog[open]') || !!drag;
+  critters.forEach((c, id) => {
+    const cw = c.el.offsetWidth || 62;
+    let walking = false;
+    const tr = c.tree;
+    if (c.mode !== 'walk' && c.mode !== 'hop' && !tr){ c.mode = 'walk'; c.y = 0; }
+    switch (c.mode){
+      case 'hop': {
+        c.prog = Math.min(1, c.prog + dt / c.hopDur);
+        const p = c.prog;
+        c.x = c.hx0 + (c.hx1 - c.hx0) * p;
+        c.y = c.hy0 + (c.hy1 - c.hy0) * p - 4 * c.arc * p * (1 - p);
+        if (p >= 1){
+          if (c.hopTo === 'tree' && tr && tree === tr){ c.mode = 'climb'; c.prog = 0; c.thrown = 0; }
+          else { c.mode = 'walk'; c.y = 0; c.tree = null; c.nextThrow = t + nextThrowDelay(id); }
+        }
+        break;
+      }
+      case 'climb': {
+        c.prog = Math.min(1, c.prog + dt / 1.5);
+        c.x = tr.baseX + (tr.topPx - tr.baseX) * c.prog - cw / 2 + c.offset;
+        c.y = (tr.baseY - groundY()) - tr.climbH * c.prog;
+        if (c.prog >= 1){ c.mode = 'top'; c.until = t + 500; }
+        break;
+      }
+      case 'top': {
+        c.y = (tr.baseY - groundY()) - tr.climbH;
+        if (t > c.until){
+          const kind = c.thrown < 3 ? pickFruit(tr) : null; // always 'coconut'
+          if (kind){
+            c.thrown++;
+            c.vx = (c.x + cw / 2 < innerWidth / 2) ? 1 : -1; // face the middle of the screen
+            if (c.thrown === 1) sayText(c, Math.random() < .6 ? anyOf(CLIMB_LINES) : anyOf(CORPORATE));
+            throwFruit(c, id, kind);
+            c.until = t + 900;
+          } else {
+            if (!c.thrown) sayText(c, 'Ook… someone beat me to it.');
+            c.mode = 'down';
+          }
+        }
+        break;
+      }
+      case 'down': {
+        c.prog = Math.max(0, c.prog - dt / 1.1);
+        c.x = tr.baseX + (tr.topPx - tr.baseX) * c.prog - cw / 2 + c.offset;
+        c.y = (tr.baseY - groundY()) - tr.climbH * c.prog;
+        if (c.prog <= 0){
+          c.tree = null;
+          startHop(c, clamp(c.x + (Math.random() - .5) * 400, 4, innerWidth - cw - 4), 0, 'ground');
+        }
+        break;
+      }
+      default: {
+        walking = t > c.pauseUntil;
+        if (walking){
+          c.x += c.vx * dt;
+          const max = innerWidth - cw - 4;
+          if (c.x < 4){ c.x = 4; c.vx = Math.abs(c.vx); }
+          if (c.x > max){ c.x = max; c.vx = -Math.abs(c.vx); }
+          if (Math.random() < .002) c.pauseUntil = t + 1200 + Math.random()*2500;
+        }
+        if (mode === 'off') c.nextThrow = t + 10000;
+        else if (t > c.nextThrow && !busy){
+          // climb the palm if one is up and has fruit, otherwise throw from the ground
+          if (!sendToTree(c, climbersOn(tree || {}))){ throwFruit(c, id); c.nextThrow = t + nextThrowDelay(id); }
+        }
+      }
+    }
+    c.el.classList.toggle('walking', walking);
+    c.el.classList.toggle('climbing', c.mode === 'climb' || c.mode === 'down');
+    c.el.classList.toggle('hopping', c.mode === 'hop');
+    c.el.classList.toggle('perched', c.mode === 'top');
+    c.el.style.transform = `translate(${c.x}px, ${c.y}px)`;
+    c.el.style.setProperty('--dir', c.vx < 0 ? -1 : 1);
+  });
+  // the palm leaves once it is picked clean (or gets old) and nobody is on it
+  if (tree && (!ripe(tree) || t - tree.born > TREE_LIFE) && !climbersOn(tree)) removeTree();
+  // ambient corporate chatter
+  if (t > nextChatter && !busy && critters.size){
+    const cs = [...critters.values()].filter(c => !c.el.querySelector('.speech'));
+    if (cs.length) sayText(anyOf(cs), anyOf(CORPORATE));
+    nextChatter = t + 9000 + Math.random() * 12000;
+  }
+  critterRaf = critters.size ? requestAnimationFrame(critterLoop) : 0;
+}
+function sayText(c, text){
+  c.el.querySelector('.speech')?.remove();
+  const s = document.createElement('div'); s.className = 'speech'; s.textContent = text;
+  c.el.appendChild(s); setTimeout(() => s.remove(), 2800);
+}
+function say(c, id){
+  const m = getM(id); if (!m) return;
+  sayText(c, Math.random() < .7 || !TYPE_LINES[m.type] ? anyOf(CORPORATE) : anyOf(TYPE_LINES[m.type]));
+}
+/* kind: 'banana' | 'coconut' when picked from the palm; otherwise a random ground fruit */
+function throwFruit(c, id, kind){
+  if (!crittersOn()) return;
+  if (c.tree && c.mode !== 'walk') kind = 'coconut'; // anything thrown from the palm is a coconut
+  if (c.mode === 'walk') c.pauseUntil = performance.now() + 900;
+  c.el.classList.remove('throwing'); void c.el.offsetWidth; c.el.classList.add('throwing');
+  const m = getM(id);
+  const [emoji, goo] = kind ? FRUIT[kind] : (m && m.type === 'banana' ? FRUIT.banana : FRUIT[anyOf(['banana','cucumber','grape'])]);
+  const r = c.el.getBoundingClientRect();
+  const x0 = r.left + r.width/2, y0 = r.top + 10;
+  const x1 = innerWidth * (.15 + Math.random()*.7), y1 = innerHeight * (.15 + Math.random()*.45);
+  const p = document.createElement('div'); p.className = 'projectile'; p.textContent = emoji;
+  document.body.appendChild(p);
+  const mx = (x0 + x1) / 2, my = Math.min(y0, y1) - 160;
+  const anim = p.animate([
+    {transform:`translate(${x0}px, ${y0}px) scale(.5) rotate(0deg)`},
+    {transform:`translate(${mx}px, ${my}px) scale(1.3) rotate(300deg)`, offset:.5},
+    {transform:`translate(${x1}px, ${y1}px) scale(2.6) rotate(680deg)`}
+  ], {duration:950, easing:'cubic-bezier(.3,.1,.6,1)'});
+  anim.onfinish = () => { p.remove(); splat(x1, y1, emoji, goo, kind === 'coconut'); };
+}
+function splat(x, y, emoji, goo, crack){
+  const s = document.createElement('div'); s.className = 'splat';
+  s.style.left = x + 'px'; s.style.top = y + 'px';
+  s.innerHTML = `<div class="goo" style="background:radial-gradient(circle,${goo} 0 40%,transparent 41%),radial-gradient(circle at 20% 30%,${goo} 0 12%,transparent 13%),radial-gradient(circle at 80% 70%,${goo} 0 10%,transparent 11%)"></div>
+    ${crack ? `<svg class="crack" viewBox="0 0 130 130" aria-hidden="true"><path d="M65 65l-30-22-8 6M65 65l26-30 10 2M65 65l-6 40 7 10M65 65l38 14" stroke="rgba(40,30,20,.55)" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>` : ''}
+    <div class="fruit">${emoji}</div>`;
+  document.body.appendChild(s);
+  s.animate([
+    {transform:'scale(.4)', opacity:1}, {transform:'scale(1.15)', opacity:1, offset:.08}, {transform:'scale(1) translateY(0)', opacity:1, offset:.15},
+    {transform:'scale(1) translateY(60px)', opacity:.9, offset:.8}, {transform:'scale(1) translateY(90px)', opacity:0}
+  ], {duration:3600, easing:'ease-in'}).onfinish = () => s.remove();
+}
+function critterReact(id, to){
+  const c = critters.get(id); if (!c) return;
+  c.pauseUntil = performance.now() + 1500;
+  const s = document.createElement('div'); s.className = 'speech';
+  s.textContent = {red:'Escalating!', amber:'Scheduled. Nice.', blue:'Off I go to someone else.', green:'Not your monkey!', pen:'Back in the pen.'}[to] || 'Ook!';
+  c.el.querySelector('.speech')?.remove(); c.el.appendChild(s); setTimeout(() => s.remove(), 2200);
+}
+/* ---------- Pallbearers: a team of monkeys carries a card out of the holding pen ---------- */
+const carrying = new Set(); // ids whose real card stays hidden until the procession sets it down
+const BEARER_LINES = {red:'Make way! Escalating!', amber:'To the calendar, lads.', blue:'Special delivery.', green:'Not our monkey. Steady now.'};
+function hideCarried(){ carrying.forEach(id => { const c = $(`.card[data-id="${id}"]`); if (c) c.classList.add('carried'); }); }
+function docRect(el){ const r = el.getBoundingClientRect(); return {x:r.left + scrollX, y:r.top + scrollY, w:r.width, h:r.height, vTop:r.top, vBottom:r.bottom}; }
+function cardRect(id){ const c = $(`.card[data-id="${id}"]`); return c ? docRect(c) : null; }
+/* Snapshot the pen card before the board re-renders. Returns null when the procession should not run. */
+function grabCard(id){
+  if (!crittersOn() || document.hidden) return null;
+  const src = $(`.card[data-id="${id}"]`); if (!src) return null;
+  const r = docRect(src);
+  if (!r.w || r.vBottom < 0 || r.vTop > innerHeight) return null; // off screen: just move it
+  const el = src.cloneNode(true);
+  el.classList.remove('landed', 'climbed', 'spot', 'is-dragging');
+  el.removeAttribute('tabindex'); el.removeAttribute('id');
+  el.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+  el.querySelectorAll('.rank').forEach(n => n.remove());
+  return Object.assign(r, {el});
+}
+function bearerTeam(excludeId, n){
+  const team = active().filter(m => m.id !== excludeId).sort((a,b) => b.risk - a.risk).slice(0, n);
+  while (team.length < n) team.push({id:'bearer' + team.length, seed:'bearer-' + team.length + '-' + Math.random(), type:'monday', name:'Pallbearer'});
+  return team;
+}
+async function carryCard(id, g, to){
+  carrying.add(id); hideCarried();
+  // The card packs down to its destination's width while the team gathers, centred on where it sat
+  const t00 = cardRect(id), sc = t00 ? clamp(t00.w / g.w, .4, 1.6) : 1;
+  const W = g.w * sc, Hs = g.h * sc, ox = (g.w - W) / 2, bx = g.x + ox, by = g.y;
+  const n = W < 230 ? 3 : 4, bw = innerWidth < 600 ? 42 : 54, bh = Math.round(bw * 1.24);
+  const slots = n === 3 ? [.18, .5, .82] : [.13, .38, .62, .87];
+  const box = document.createElement('div'); box.className = 'cortege'; box.setAttribute('aria-hidden', 'true');
+  Object.assign(box.style, {left:bx + 'px', top:by + 'px', width:W + 'px', height:(Hs + bh) + 'px'});
+  const load = document.createElement('div'); load.className = 'load'; load.style.width = g.w + 'px';
+  g.el.inert = true; load.appendChild(g.el); box.appendChild(load);
+  const bearers = bearerTeam(id, n).map((m, i) => {
+    const b = document.createElement('div'); b.className = 'bearer';
+    const x = W * slots[i], side = x < W / 2 ? -1 : 1;
+    // hands sit just under the card's bottom edge; bearers stand in front so their paws overlap it
+    Object.assign(b.style, {left:(x - bw / 2) + 'px', top:(Hs - bh * .1) + 'px', width:bw + 'px', height:bh + 'px'});
+    b.style.setProperty('--dir', -side); // face inward while gathering
+    b.innerHTML = `<div class="flip"><div class="body">${critterSVG(m, 'carry')}</div></div>`;
+    box.appendChild(b);
+    return {b, side};
+  });
+  document.body.appendChild(box);
+
+  // Escape or a click anywhere hurries the procession along
+  let rush = false; const live = [];
+  const go = (el, kf, o) => { const a = el.animate(kf, rush ? Object.assign({}, o, {duration:1, delay:0}) : o); live.push(a); return a.finished.catch(() => {}); };
+  const hurry = () => { rush = true; live.forEach(a => { try { a.finish(); } catch(e){} }); };
+  const onKey = e => { if (e.key === 'Escape') hurry(); };
+  document.addEventListener('keydown', onKey); document.addEventListener('pointerdown', hurry);
+
+  try {
+    // 1. Gather: bearers shuffle in from both sides and duck under the card
+    box.classList.add('shuffling');
+    go(load, [{transform:`translateX(${-ox}px) scale(1)`}, {transform:`scale(${sc})`}], {duration:520, easing:'cubic-bezier(.3,1.3,.5,1)', fill:'forwards'});
+    await Promise.all(bearers.map(({b, side}, i) => go(b, [
+      {transform:`translateX(${side * (W / 2 + 90)}px)`, opacity:0},
+      {transform:`translateX(${side * (W / 2 + 60)}px)`, opacity:1, offset:.2},
+      {transform:'none', opacity:1}
+    ], {duration:720, delay:i * 90, easing:'ease-out', fill:'backwards'})));
+    box.classList.remove('shuffling');
+
+    const t0 = cardRect(id);
+    if (t0){
+      // 2. Hoist onto shoulders
+      const dir = t0.x >= bx ? 1 : -1;
+      bearers.forEach(({b}) => b.style.setProperty('--dir', dir));
+      if (!rush) sayText({el:box}, BEARER_LINES[to] || 'Hup!');
+      await go(box, [{transform:'translate(0,0)'}, {transform:'translate(0,-16px)'}], {duration:300, easing:'cubic-bezier(.3,1.6,.5,1)', fill:'forwards'});
+
+      // 3. March in step, with the camera following if the bucket is off screen
+      const dx = t0.x - bx, dy = t0.y - by;
+      box.classList.add('marching');
+      // the view follows the procession, keeping it in the middle band of the screen
+      let following = true;
+      const follow = () => {
+        if (!following) return;
+        // keep the bearers' feet clear of the critter strip, and the card's top clear of the screen edge
+        const r = box.getBoundingClientRect(), floor = innerHeight - 100, ceil = 50;
+        if (r.bottom > floor) scrollBy(0, Math.ceil((r.bottom - floor) * .14));
+        else if (r.top < ceil && scrollY > 0) scrollBy(0, Math.floor((r.top - ceil) * .14));
+        requestAnimationFrame(follow);
+      };
+      requestAnimationFrame(follow);
+      await go(box, [{transform:'translate(0,-16px)'}, {transform:`translate(${dx}px, ${dy - 16}px)`}],
+        {duration:clamp(Math.hypot(dx, dy) / .32, 1200, 3000), easing:'cubic-bezier(.35,0,.65,1)', fill:'forwards'});
+      following = false;
+      box.classList.remove('marching');
+
+      // 4. Set it down exactly where the real card lives now (re-measured in case the board shifted)
+      const t1 = cardRect(id) || t0;
+      await Promise.all([
+        go(box, [{transform:`translate(${dx}px, ${dy - 16}px)`}, {transform:`translate(${t1.x - bx}px, ${t1.y - by}px)`}], {duration:320, easing:'ease-out', fill:'forwards'}),
+        go(load, [{transform:`scale(${sc})`}, {transform:`scale(${t1.w / g.w})`}], {duration:320, easing:'ease-out', fill:'forwards'})
+      ]);
+    }
+    carrying.delete(id);
+    const real = $(`.card[data-id="${id}"]`);
+    if (real){ real.classList.remove('carried'); real.classList.add('landed'); }
+    go(load, [{opacity:1}, {opacity:0}], {duration:160, fill:'forwards'});
+
+    // 5. Job done: the bearers scatter
+    box.classList.add('shuffling');
+    await Promise.all(bearers.map(({b, side}, i) => { b.style.setProperty('--dir', side); return go(b, [
+      {transform:'none', opacity:1}, {transform:`translate(${side * (60 + i * 16)}px, 14px)`, opacity:0}
+    ], {duration:520, delay:100 + i * 60, easing:'ease-in', fill:'forwards'}); }));
+  } finally {
+    document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', hurry);
+    carrying.delete(id);
+    const real = $(`.card[data-id="${id}"]`); if (real) real.classList.remove('carried');
+    box.remove();
+  }
+}
+
+function bananaBurst(x, y){
+  if (REDUCED) return;
+  const bits = ['🍌','🍌','🍌','✨','🎉','🍌'];
+  for (let i = 0; i < 26; i++){
+    const b = document.createElement('div'); b.className = 'confetti'; b.textContent = bits[i % bits.length];
+    document.body.appendChild(b);
+    const ang = Math.random() * Math.PI * 2, dist = 80 + Math.random() * 180;
+    const tx = x + Math.cos(ang) * dist, ty = y + Math.sin(ang) * dist - 80;
+    b.animate([
+      {transform:`translate(${x}px, ${y}px) scale(.4) rotate(0)`, opacity:1},
+      {transform:`translate(${tx}px, ${ty}px) scale(1.2) rotate(${Math.random()*540-270}deg)`, opacity:1, offset:.55},
+      {transform:`translate(${tx}px, ${ty + 160}px) scale(.9) rotate(${Math.random()*720}deg)`, opacity:0}
+    ], {duration:1300 + Math.random()*500, easing:'cubic-bezier(.2,.7,.4,1)'}).onfinish = () => b.remove();
+  }
+}
+
+/* =========================================================
+   18. DATA: export, import, CSV, print, clear
+   ========================================================= */
+function download(name, text, type){
+  const blob = new Blob([text], {type});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const stamp = () => new Date().toISOString().slice(0,10);
+function exportJSON(){ download(`eisenhowler-${stamp()}.json`, JSON.stringify(Object.assign({exportedAt:nowISO(), app:'Eisenhowler'}, state), null, 2), 'application/json'); toast('💾 Exported all data as JSON.'); }
+function exportCSV(){
+  const cols = ['Name','Type','Bucket','Summary','Owner','Brought by','Deadline','Risk','Impact','Time in bucket','Next step response','Notes'];
+  const q = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
+  const rows = active().map(m => [m.name, typeOf(m).name, PLACE_LABEL[m.bucket], m.summary, ownerLabel(m.owner), m.broughtBy, m.deadline ? fmtDate(m.deadline) : '', RISK_LABEL[m.risk].slice(2), IMPACT_LABEL[m.impact], dur(Date.now() - new Date(m.bucketSince)), m.response, m.notes.map(n => n.text).join(' | ')]);
+  download(`eisenhowler-board-${stamp()}.csv`, '\ufeff' + [cols, ...rows].map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+  toast(`📄 Exported ${rows.length} active monkeys as CSV.`);
+}
+async function importJSON(file){
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || !Array.isArray(data.monkeys)) throw new Error('No monkeys array found');
+    if (!await askConfirm(`Replace your current board with ${data.monkeys.length} monkeys from “${file.name}”? Export first if you want a backup.`, 'Replace board')) return;
+    state = normaliseState(data); save(); renderAll();
+    toast(`📥 Imported ${state.monkeys.length} monkeys.`);
+  } catch(err){ toast(`⚠️ Import failed: ${err.message}. Choose a JSON file exported from Eisenhowler.`, 6000); }
+}
+
+/* =========================================================
+   19. SETTINGS
+   ========================================================= */
+function openSettings(){
+  const s = state.settings;
+  $('#sName').value = s.name; $('#sThrow').value = s.throwing; $('#sAuto').checked = s.autoEscalate; $('#sAutoGreen').checked = s.autoEscalateGreen;
+  $('#ctBucket').innerHTML = BUCKET_ORDER.map(k => `<option value="${k}">${BUCKETS[k].icon} ${BUCKETS[k].title}</option>`).join('');
+  renderCustomTypes(); resetTypeForm();
+  const d = $('#settingsDlg'); d.returnValue = ''; d.showModal();
+}
+/* ---------- Custom types: suggest trigger words from a description ---------- */
+let editingType = null, suggT = 0;
+const readKw = () => $('#ctKw').value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+function resetTypeForm(){
+  editingType = null;
+  ['#ctName','#ctEmoji','#ctKw','#ctDesc'].forEach(s => $(s).value = '');
+  $('#ctAdd').textContent = 'Add monkey type'; $('#ctCancel').hidden = true;
+  renderKwSuggestions();
+}
+/* Words people would actually type: single meaningful words, two-word phrases, and simple plural/singular variants.
+   Phrases come first because they are more specific and misfire less. */
+const KW_EXTRA_STOP = new Set('another extra lot lots kind sort type types usually often always sometimes request requests issue issues problem problems work task tasks team teams before after during around other others something anything everything everyone people person time week weeks day days monkey monkeys etc e.g'.split(' '));
+function suggestKeywords(text){
+  const keep = w => w.length >= 3 && !STOP.has(w) && !KW_EXTRA_STOP.has(w) && !/^\d+$/.test(w);
+  const out = new Map(); // keyword -> score
+  const bump = (k, v) => out.set(k, (out.get(k) || 0) + v);
+  // phrases never run across punctuation, so "scope, extra" never becomes "scope extra"
+  const clauses = String(text).toLowerCase().replace(/[’']s\b/g, '').replace(/[’']/g, '').split(/[,.;:!?()\n\/]+/);
+  for (const clause of clauses){
+    const words = clause.match(/[a-z][a-z\-]*[a-z]|[a-z]/g) || [];
+    for (let i = 0; i < words.length; i++){
+      const w = words[i], n = words[i + 1];
+      if (keep(w)) bump(w, 1 + Math.min(w.length, 10) / 10);
+      if (n && keep(w) && keep(n)) bump(w + ' ' + n, 2.2);
+    }
+  }
+  // simple variants so "auditor" also catches "auditors" (and the reverse)
+  for (const k of [...out.keys()]){
+    if (k.includes(' ')) continue;
+    if (k.endsWith('ies') && k.length > 5) bump(k.slice(0, -3) + 'y', .3);
+    else if (k.endsWith('s') && !k.endsWith('ss') && k.length > 4) bump(k.slice(0, -1), .3);
+  }
+  return [...out.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k).slice(0, 14);
+}
+/* Which existing types already listen for a word: the forecast adds both scores, so clashes blur the suggestion */
+function kwClash(kw){
+  const types = allTypes(), hits = [];
+  for (const [k, t] of Object.entries(types)){
+    if (k === editingType) continue;
+    if ((t.kw || []).some(x => { const xx = x.toLowerCase(); return xx === kw || (kw.includes(' ') ? kw.split(' ').includes(xx) : false); })) hits.push(t.name.replace(/ Monkey$/, ''));
+  }
+  return hits;
+}
+function renderKwSuggestions(){
+  const sugg = suggestKeywords($('#ctDesc').value);
+  $('#ctSuggWrap').hidden = !sugg.length;
+  $('#ctSugg').innerHTML = sugg.map(k => {
+    const clash = kwClash(k);
+    return `<button type="button" class="kw-chip" data-kw="${esc(k)}" aria-pressed="false">${esc(k)}${clash.length ? `<span class="clash">also ${esc(clash.slice(0, 2).join(', '))}</span>` : ''}</button>`;
+  }).join('');
+  syncKwChips();
+}
+function syncKwChips(){
+  const list = readKw();
+  $$('#ctSugg [data-kw]').forEach(b => b.setAttribute('aria-pressed', list.includes(b.dataset.kw)));
+}
+function renderCustomTypes(){
+  $('#sTypes').innerHTML = state.customTypes.length ? state.customTypes.map(t => `<li><span><b>${esc(t.emoji)} ${esc(t.name)}</b> goes to ${esc(BUCKETS[t.bucket].title)}${t.desc ? `<span class="type-desc">${esc(t.desc)}</span>` : ''}<time>Triggers: ${esc(t.kw.join(', ') || 'none')}</time></span><button type="button" class="btn small ghost" data-edit-type="${esc(t.key)}" aria-label="Edit ${esc(t.name)}">✎</button><button type="button" class="btn small ghost" data-del-type="${esc(t.key)}" aria-label="Remove ${esc(t.name)}">✕</button></li>`).join('')
+    : '<li><span class="hint">No custom types yet. Add one below, for example an Audit Monkey.</span></li>';
+}
+
+/* =========================================================
+   20. WIRING + INIT
+   ========================================================= */
+function quickDeadline(kind){
+  const d = new Date();
+  if (kind === 'clear') return '';
+  if (kind === 'today') d.setHours(17,0,0,0);
+  if (kind === 'tomorrow'){ d.setDate(d.getDate()+1); d.setHours(9,0,0,0); }
+  if (kind === 'friday'){ let add = (5 - d.getDay() + 7) % 7; if (add === 0 && d.getHours() >= 17) add = 7; d.setDate(d.getDate()+add); d.setHours(17,0,0,0); }
+  if (kind === 'monday') return toLocalInput(nextWeekday(1, 9));
+  return toLocalInput(d);
+}
+function init(){
+  load();
+  buildIQ($('#intakeIQ'), 'in-'); buildIQ($('#editIQ'), 'ed-');
+
+  let ft; const sched = () => { clearTimeout(ft); ft = setTimeout(renderForecast, 150); };
+  $('#intake').addEventListener('input', sched); $('#intake').addEventListener('change', sched);
+  $('#intake').addEventListener('submit', summon);
+  $('#intake').addEventListener('reset', () => setTimeout(() => { fillIQ($('#intakeIQ'), {}); renderForecast(); }, 0));
+  $$('[data-quick]').forEach(b => b.addEventListener('click', () => { $('#fDeadline').value = quickDeadline(b.dataset.quick); sched(); }));
+
+  // edit dialog
+  $('#editForm').addEventListener('input', e => { if (!e.target.closest('#eNoteNew')) editForecast(); });
+  $('#editForm').addEventListener('change', editForecast);
+  $('#editDlg').addEventListener('close', () => { if ($('#editDlg').returnValue === 'save') saveEdit(); editId = null; });
+  $('#eSuggest').addEventListener('click', () => {
+    const r = classify(editInput()); $('#eType').value = r.type;
+    if (!$('#eName').value.trim()) $('#eName').value = makeName($('#eDesc').value, r.type);
+    toast(`🔮 Suggested type set to ${allTypes()[r.type].name}. Best bucket: ${BUCKETS[r.bucket].title}.`);
+  });
+  const addNote = () => {
+    const m = getM(editId), v = $('#eNoteNew').value.trim(); if (!m || !v) return;
+    m.notes.push({text:v, at:nowISO()}); $('#eNoteNew').value = ''; save(); renderEditLists(m); renderBoard(); $('#eNoteNew').focus();
+  };
+  $('#eNoteAdd').addEventListener('click', addNote);
+  $('#eNoteNew').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); addNote(); } });
+  $('#eNotes').addEventListener('click', e => {
+    const b = e.target.closest('[data-del-note]'); const m = getM(editId); if (!b || !m) return;
+    m.notes.splice(+b.dataset.delNote, 1); save(); renderEditLists(m); renderBoard();
+  });
+  $('#eName').addEventListener('blur', () => { const v = $('#eName').value.trim().split(/\s+/); if (v.length > 5){ $('#eName').value = v.slice(0,5).join(' '); toast('Monkey names max out at five words.'); } });
+
+  $('#stepDlg').addEventListener('close', closeStep);
+  $('#stepDlg').addEventListener('cancel', () => { $('#stepDlg').returnValue = 'skip'; });
+
+  // header tools
+  $('#focusBtn').addEventListener('click', toggleFocus);
+  $('#focusList').addEventListener('click', e => { const b = e.target.closest('[data-goto]'); if (b) gotoCard(b.dataset.goto); });
+  $('#critterBtn').addEventListener('click', () => {
+    if (REDUCED && !state.settings.critters) toast('Your device asks for reduced motion, so the monkeys stay put.');
+    state.settings.critters = !state.settings.critters; save(); syncCritters();
+    toast(state.settings.critters ? (REDUCED ? 'Monkey business is on, but paused for reduced motion.' : '🐒 The monkeys are out.') : '🍌 Monkeys sent to their nap.');
+  });
+  $('#exportJson').addEventListener('click', exportJSON);
+  $('#exportCsv').addEventListener('click', exportCSV);
+  $('#importBtn').addEventListener('click', () => $('#importFile').click());
+  $('#importFile').addEventListener('change', e => { const f = e.target.files[0]; if (f) importJSON(f); e.target.value = ''; });
+  $('#printBtn').addEventListener('click', () => { $('#printDate').textContent = fmtDate(nowISO()); window.print(); });
+  $('#settingsBtn').addEventListener('click', openSettings);
+
+  // settings
+  $('#settingsDlg').addEventListener('close', () => {
+    if ($('#settingsDlg').returnValue !== 'save') return;
+    Object.assign(state.settings, {name:$('#sName').value.trim(), throwing:$('#sThrow').value, autoEscalate:$('#sAuto').checked, autoEscalateGreen:$('#sAutoGreen').checked});
+    save(); renderAll(); checkMigrations(); toast('⚙️ Settings saved.');
+  });
+  $('#ctAdd').addEventListener('click', () => {
+    const name = limitWords($('#ctName').value, 5);
+    if (!name){ $('#ctName').focus(); toast('Give the new monkey type a name.'); return; }
+    const fields = {name:/monkey$/i.test(name) ? name : name + ' Monkey', emoji:$('#ctEmoji').value.trim() || '🐒', bucket:$('#ctBucket').value,
+      desc:$('#ctDesc').value.trim(), kw:readKw()};
+    if (editingType){
+      const t = state.customTypes.find(x => x.key === editingType);
+      if (t) Object.assign(t, fields);
+      toast(`🐒 ${fields.name} updated.`);
+    } else {
+      const key = 'c_' + name.toLowerCase().replace(/[^a-z0-9]+/g,'_') + '_' + Math.random().toString(36).slice(2,5);
+      state.customTypes.push(Object.assign({key}, fields));
+      toast('🐒 New monkey type added.');
+    }
+    resetTypeForm(); save(); renderCustomTypes(); renderForecast(); renderAll();
+  });
+  $('#ctCancel').addEventListener('click', resetTypeForm);
+  $('#ctDesc').addEventListener('input', () => { clearTimeout(suggT); suggT = setTimeout(renderKwSuggestions, 200); });
+  $('#ctName').addEventListener('input', () => { clearTimeout(suggT); suggT = setTimeout(renderKwSuggestions, 200); });
+  $('#ctKw').addEventListener('input', syncKwChips);
+  $('#ctSugg').addEventListener('click', e => {
+    const b = e.target.closest('[data-kw]'); if (!b) return;
+    const kw = b.dataset.kw, list = readKw();
+    $('#ctKw').value = (list.includes(kw) ? list.filter(k => k !== kw) : list.concat(kw)).join(', ');
+    syncKwChips();
+  });
+  $('#sTypes').addEventListener('click', async e => {
+    const eb = e.target.closest('[data-edit-type]');
+    if (eb){
+      const t = state.customTypes.find(x => x.key === eb.dataset.editType); if (!t) return;
+      editingType = t.key;
+      $('#ctName').value = t.name; $('#ctEmoji').value = t.emoji; $('#ctBucket').value = t.bucket;
+      $('#ctDesc').value = t.desc || ''; $('#ctKw').value = t.kw.join(', ');
+      $('#ctAdd').textContent = 'Save monkey type'; $('#ctCancel').hidden = false;
+      renderKwSuggestions(); $('#ctDesc').focus(); return;
+    }
+    const b = e.target.closest('[data-del-type]'); if (!b) return;
+    const key = b.dataset.delType, used = state.monkeys.filter(m => m.type === key).length;
+    if (used && !await askConfirm(`${used} monkey(s) use this type. They will become Monday Monkeys. Remove the type?`, 'Remove type')) return;
+    state.monkeys.forEach(m => { if (m.type === key) m.type = 'monday'; });
+    state.customTypes = state.customTypes.filter(t => t.key !== key); save(); renderCustomTypes(); renderAll();
+    if (!$('#settingsDlg').open) openSettings();
+  });
+  $('#sDemo').addEventListener('click', () => { seedDemo(); renderAll(); toast('🐒 Demo monkeys reset: five fresh ones on the board.'); });
+  $('#sClear').addEventListener('click', async () => {
+    $('#settingsDlg').close();
+    if (!await askConfirm('Clear every monkey, note, history entry, custom type and setting? This cannot be undone. Export JSON first if you want a backup.', 'Clear everything')) return;
+    localStorage.removeItem(STORE_KEY);
+    state = {version:1, monkeys:[], customTypes:[], settings:defaultSettings()}; save(); renderAll();
+    toast('🧹 All data cleared. Fresh jungle.');
+  });
+
+  // vault
+  $$('[data-vtab]').forEach(b => b.addEventListener('click', () => { vaultTab = b.dataset.vtab; renderVault(); }));
+  $('.vault-tabs').addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    vaultTab = vaultTab === 'done' ? 'archived' : 'done'; renderVault(); $(`[data-vtab="${vaultTab}"]`).focus();
+  });
+  $('#vaultList').addEventListener('click', e => {
+    const b = e.target.closest('[data-vact]'), li = e.target.closest('[data-id]'); if (!b || !li) return;
+    const id = li.dataset.id;
+    if (b.dataset.vact === 'restore') restoreMonkey(id);
+    if (b.dataset.vact === 'view') openEdit(id, 'history');
+    if (b.dataset.vact === 'delete') deleteMonkey(id);
+  });
+
+  // brand wiggle on click: tiny easter egg
+  $('.brand').addEventListener('click', () => { if (!REDUCED) $('.brand .howl').animate([{transform:'rotate(0)'},{transform:'rotate(-8deg)'},{transform:'rotate(6deg)'},{transform:'rotate(0)'}], {duration:500}); });
+
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { clearTreeNow(); syncCritters(); }, 200); });
+  // one palm tree pops up every two minutes (the first shortly after loading)
+  setTimeout(spawnTree, TREE_FIRST); setInterval(spawnTree, TREE_EVERY);
+  addEventListener('storage', e => { if (e.key === STORE_KEY){ load(); renderAll(); } });
+
+  // dialog helpers: header close buttons, and Enter in a text field never submits a dialog by accident
+  document.addEventListener('click', e => { const c = e.target.closest('[data-close]'); if (c) c.closest('dialog').close('cancel'); });
+  // Dialog buttons close their dialog in script, not by submitting the form: sandboxed frames
+  // (artifact previews, intranet and SharePoint embeds) block form submission, which made Save and Confirm do nothing.
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('dialog form[method="dialog"] button');
+    if (!btn || btn.type !== 'submit') return;
+    e.preventDefault();
+    const dismiss = ['cancel', 'no', 'skip'].includes(btn.value);
+    if (!dismiss && !btn.form.reportValidity()) return; // keep the required-field check on Save
+    btn.closest('dialog').close(btn.value);
+  });
+  $$('dialog form[method="dialog"]').forEach(f => f.addEventListener('submit', e => {
+    // any other submit (e.g. Enter on a button) takes the same script path
+    e.preventDefault();
+    const btn = e.submitter, dlg = f.closest('dialog');
+    if (btn && btn.value) dlg.close(btn.value);
+  }));
+  $$('dialog form').forEach(f => f.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.matches('input:not([type=radio]):not([type=checkbox])')) e.preventDefault();
+  }));
+
+  renderForecast();
+  renderAll();
+  checkMigrations();
+  setInterval(tick, 30000);
+}
+init();
+</script>
+</body>
+</html>
