@@ -577,11 +577,6 @@ dialog::backdrop{background:rgba(43,33,24,.45);backdrop-filter:blur(2px)}
     <nav class="tools no-print" aria-label="Board tools">
       <button class="btn small" id="critterBtn" type="button" aria-pressed="true">🐒 Monkey business</button>
       <span class="spacer"></span>
-      <button class="btn small ghost" id="exportJson" type="button">Export JSON</button>
-      <button class="btn small ghost" id="importBtn" type="button">Import JSON</button>
-      <input type="file" id="importFile" accept="application/json,.json" class="sr-only" tabindex="-1" aria-hidden="true">
-      <button class="btn small ghost" id="exportCsv" type="button">Export CSV</button>
-      <button class="btn small ghost" id="printBtn" type="button">Print board</button>
       <button class="btn small" id="settingsBtn" type="button">⚙️ Settings</button>
     </nav>
   </div>
@@ -688,7 +683,6 @@ dialog::backdrop{background:rgba(43,33,24,.45);backdrop-filter:blur(2px)}
 
   <!-- ============ MATRIX ============ -->
   <div class="wrap">
-    <h2 class="print-only">Eisenhowler board, printed <span id="printDate"></span></h2>
     <div class="board-wrap" id="board">
       <div class="axis x" aria-hidden="true"><span>Time-sensitive</span><span>Can wait</span></div>
       <div class="axis y" aria-hidden="true"><span>Needs me</span><span>Doesn't need me</span></div>
@@ -3659,11 +3653,6 @@ function init(){
     state.settings.critters = !state.settings.critters; save(); syncCritters();
     toast(state.settings.critters ? (REDUCED ? 'Monkey business is on, but paused for reduced motion.' : '🐒 The monkeys are out.') : '🍌 Monkeys sent to their nap.');
   });
-  $('#exportJson').addEventListener('click', exportJSON);
-  $('#exportCsv').addEventListener('click', exportCSV);
-  $('#importBtn').addEventListener('click', () => $('#importFile').click());
-  $('#importFile').addEventListener('change', e => { const f = e.target.files[0]; if (f) importJSON(f); e.target.value = ''; });
-  $('#printBtn').addEventListener('click', () => { $('#printDate').textContent = fmtDate(nowISO()); window.print(); });
   $('#settingsBtn').addEventListener('click', openSettings);
 
   // settings
@@ -3692,7 +3681,7 @@ function init(){
   $('#sDemo').addEventListener('click', () => { seedDemo(); renderAll(); toast('🐒 Five demo monkeys added to the board.'); });
   $('#sClear').addEventListener('click', async () => {
     $('#settingsDlg').close();
-    if (!await askConfirm('Clear every monkey, note, history entry, custom type and setting? This cannot be undone. Export JSON first if you want a backup.', 'Clear everything')) return;
+    if (!await askConfirm('Clear every monkey, note, history entry, custom type and setting? This cannot be undone.', 'Clear everything')) return;
     try { localStorage.removeItem(STORE_KEY); } catch(e){}
     state = {version:1, monkeys:[], customTypes:[], ops:[], settings:Object.assign(defaultSettings(), {opsSeeded:true})}; save(); renderAll();
     toast('🧹 All data cleared. Fresh jungle.');
